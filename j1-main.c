@@ -15,6 +15,8 @@
 
 void j1_init();
 void j1_emu(CELL start);
+extern WORD the_memory[];
+extern WORD HERE;
 
 char base_fn[32];
 bool run_saved = true;
@@ -91,8 +93,12 @@ int main (int argc, char **argv)
     }
 
 	j1_init();
+	the_memory[HERE++] = 0xFFFF;
+	the_memory[HERE++] = 0x8003;
+	the_memory[HERE++] = 0x8001;
+	the_memory[HERE++] = 0x2001;
 	j1_emu(0);
 
-	printf("j1 exiting");
+	printf("\nj1 exiting");
     return 0;
 }

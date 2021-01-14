@@ -1,26 +1,14 @@
-#include <winbase.h>
-#include <windows.h>
-#include <stdio.h>
-
 // J1 white paper is here: https://excamera.com/files/j1.pdf
+
+#include <stdio.h>
 
 #define CELL_SZ 2
 #define MEM_SZ 8192
 #define WORD unsigned short
 #define CELL WORD
 
-// ------------------------------------------------------------------------------------------
-// The VM
-// ------------------------------------------------------------------------------------------
 WORD the_memory[MEM_SZ];
-// DICT_T the_words[MAX_WORDS];
 
-HANDLE hStdout, hStdin;
-CONSOLE_SCREEN_BUFFER_INFO csbi;
-
-// ---------------------------------------------------------------------
-// The stacks are circular ... no underflow or overflow
-// ---------------------------------------------------------------------
 #define STK_SZ 16
 CELL dstk[STK_SZ+1];
 int DSP = 0;
@@ -29,18 +17,15 @@ CELL rstk[STK_SZ+1];
 int RSP = 0;
 
 CELL PC;
-CELL oldN, newN;
-CELL oldR, newR;
-CELL oldT, newT;
+CELL newT;
 
 #define T dstk[DSP]
 #define N dstk[(DSP > 0) ? (DSP-1) : 0]
 #define R rstk[RSP]
 
 int running = 0;
+CELL HERE = 0;
 
-// ---------------------------------------------------------------------
-// Initialization
 // ---------------------------------------------------------------------
 void j1_init()
 {
@@ -50,7 +35,8 @@ void j1_init()
 	running = 0;
 }
 
-void determineNewT(WORD OP) {
+// ---------------------------------------------------------------------
+void setNewT(WORD OP) {
 	switch (OP) {
 		case 0:
 			newT = T;
@@ -86,7 +72,7 @@ void determineNewT(WORD OP) {
 			newT = (T-1);
 			break;
 		case 11:
-			newT = (R);
+			newT = R;
 			break;
 		case 12:
 			newT = the_memory[T];
@@ -103,10 +89,8 @@ void determineNewT(WORD OP) {
 	}
 }
 
+// ---------------------------------------------------------------------
 void executeALU(WORD IR) {
-	oldN = N;
-	oldT = T;
-	oldR = R;
 	// Lower 13 bits ...
 	// R->PC               [12:12] xxxR xxxx xxxx xxxx (IR >> 12) & 0x0001
 	// T'                  [11:08] xxxx NNNN xxxx xxxx (IR >> 11) & 0x000F
@@ -122,19 +106,11 @@ void executeALU(WORD IR) {
 	// RSP (no change)     [01:00] xxxx xxxx xxxx xx10 (IR & 0x0003) == 0x0002
 	// RSP += 1            [01:00] xxxx xxxx xxxx xx01 (IR & 0x0003) == 0x0001
 	// RSP (no change)     [01:00] xxxx xxxx xxxx xx00 (IR & 0x0003) == 0x0000
+	WORD origN = N;
+	WORD origT = T;
+	setNewT((IR >> 8) & 0x0F);
 	if ((IR >> 12) & 0x0001) {
 		PC = R;
-	}
-	determineNewT((IR >> 8) & 0x0F);
-	if ((IR >> 7) & 0x0001) {
-		newN = T;
-	}
-	if ((IR >> 6) & 0x0001) {
-		newR = T;
-	}
-	if ((IR >> 5) & 0x0001) {
-		the_memory[T] = N;
-		// DSP -= (DSP > 0) ? 1 : 0;
 	}
 	switch ((IR >> 2) & 0x0003) {
 		case 1: RSP += (RSP < STK_SZ) ? 1 : 0;  break;
@@ -144,22 +120,33 @@ void executeALU(WORD IR) {
 		case 1: DSP += (DSP < STK_SZ) ? 1 : 0;  break;
 		case 3: DSP -= (DSP > 0) ? 1 : 0;       break;
 	}
+	if ((IR >> 7) & 0x0001) {
+		N = origT;
+	}
+	if ((IR >> 6) & 0x0001) {
+		R = origT;
+	}
+	if ((IR >> 5) & 0x0001) {
+		the_memory[origT] = origN;
+		// BUG HERE? DSP -= (DSP > 0) ? 1 : 0;
+	}
 	T = newT;
-	N = newN;
-	R = newR;
 }
 
 // ---------------------------------------------------------------------
-// Where all the fun is ...
-// ---------------------------------------------------------------------
 void j1_emu(CELL start)
 {
-	running = 0;
+	int cycle = 0;
+	running = 1;
 	PC = start;
 
 	while (running)
 	{
+		printf("\nPC: %-3d DSP: %-2d N: %-5d T: %-5d", PC, DSP, N, T);
+		printf(" RSP: %-2d R: %-3d cycle: %-3d", RSP, R, cycle);
+		running = (++cycle > 20) ? 0 : 1;
         WORD IR = the_memory[PC++];
+		printf(" IR: %04X", IR);
 
 		// The top 3 bits identify the class of operation ...
 		// 1xxx => LIT  (1xxx xxxx xxxx xxxx) (IR & 0x8000) != 0x0000
@@ -171,16 +158,21 @@ void j1_emu(CELL start)
 		if ((IR & 0x8000) != 0x0000) {             // LITERAL
 			DSP += (DSP < STK_SZ) ? 1 : 0;
 			T = (IR & 0x7FFF);
+			printf(" - LIT %d", T);
 		} else if ((IR & 0x6000) == 0x0000) {      // JMP
 			PC = IR & 0x1FFF;
+			printf(" - JMP %d", PC);
 		} else if ((IR & 0x6000) == 0x2000) {      // JMPZ (0BRANCH)
+			printf(" - JMPZ %d", IR & 0x1FFF);
 			PC = (T == 0) ? (IR & 0x1FFF) : PC;
 			DSP -= (DSP > 0) ? 1 : 0;
 		} else if ((IR & 0x6000) == 0x4000) {      // CALL
+			printf(" - CALL %d", IR & 0x1FFF);
 			RSP += (RSP < STK_SZ) ? 1 : 0;
 			R = PC;
 			PC = (IR & 0x1FFF);
 		} else if ((IR & 0x6000) == 0x6000) {      // ALU
+			printf(" - ALU: ");
 			executeALU(IR);
 		}
 	}
