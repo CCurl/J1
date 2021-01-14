@@ -71,14 +71,67 @@ int getWord(char *word) {
 }
 
 int isNumber(char *word, WORD *value) {
+	int base = 10;
+	bool isNeg = false;
+	short num = 0;
 	*value = 0;
-	return false;
+
+	if (*word == '$') {
+		base = 16;
+		++word;
+	}
+	if (*word == '#') {
+		base = 10;
+		++word;
+	}
+	if (*word == '%') {
+		base = 2;
+		++word;
+	}
+	char ch = *(word++);
+	while (ch) {
+		short chNum = -1;
+		if ((base == 2) && ('0' <= ch) && (ch <= '1')) {
+			chNum = ch - '0';
+		}
+		if ((base == 10) && ('0' <= ch) && (ch <= '9')) {
+			chNum = ch - '0';
+		}
+		if (base == 16) {
+			if (('0' <= ch) && (ch <= '9')) {
+				chNum = ch - '0';
+			}
+			if (('A' <= ch) && (ch <= 'F')) {
+				chNum = ch - 'A' + 10;
+			}
+			if (('a' <= ch) && (ch <= 'f')) {
+				chNum = ch - 'a' + 10;
+			}
+		}
+		if (chNum < 0) { return false; }
+
+		num = (num*base) + chNum;
+		ch = *(word++);
+	}
+	if (isNeg) {
+		num = -num;
+	}
+	*value = (WORD)num;
+	return true;
 }
 
 void parseWord(char *word) {
 	WORD num = 0;
 	if (isNumber(word, &num)) {
 		COMMA(MAKE_LIT(num));
+		if ((num & 0x8000) == 0) {
+			COMMA(MAKE_LIT(num));
+		} else {
+			// For numbers larger than 0x7FFF
+			num = ~num;
+			COMMA(MAKE_LIT(num));
+			COMMA(MAKE_ALU(0x0030));
+		}
 		return;
 	}
 	if (strcmp(word, "XXX") == 0) {
@@ -107,8 +160,8 @@ void getLine(char *line) {
 
 void doCompile() {
 	COMMA(MAKE_LIT(0xFFFF));
-	COMMA(MAKE_LIT(4));
-	COMMA(MAKE_LIT(0));
+	parseWord("4");
+	parseWord("0");
 	COMMA(MAKE_JMPZ(1));
 	COMMA(MAKE_JMP(0));
 }
