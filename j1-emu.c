@@ -1,13 +1,11 @@
 #include <winbase.h>
 #include <windows.h>
 #include <stdio.h>
-#include "Shared.h"
-#include "forth-vm.h"
 
 // J1 white paper is here: https://excamera.com/files/j1.pdf
 
 #define CELL_SZ 2
-#define MEM_SZ 2048
+#define MEM_SZ 8192
 #define WORD unsigned short
 #define CELL WORD
 
@@ -19,11 +17,6 @@ WORD the_memory[MEM_SZ];
 
 HANDLE hStdout, hStdin;
 CONSOLE_SCREEN_BUFFER_INFO csbi;
-
-char txBuf[256];
-extern void txToUser(char);
-extern void txToUser_String(char *);
-extern char rxFromUser();
 
 // ---------------------------------------------------------------------
 // The stacks are circular ... no underflow or overflow
@@ -49,7 +42,7 @@ int running = 0;
 // ---------------------------------------------------------------------
 // Initialization
 // ---------------------------------------------------------------------
-void init_vm()
+void j1_init()
 {
 	DSP = 0;
 	RSP = 0;
@@ -78,7 +71,7 @@ void determineNewT(WORD OP) {
 			newT = (T ^ N); // XOR
 			break;
 		case 6:
-			newT = (T ~ N); // NOT (aka - INVERT)
+			newT = (~T); // NOT (aka - INVERT)
 			break;
 		case 7:
 			newT = (N == T) ? 1 : 0;
@@ -96,7 +89,7 @@ void determineNewT(WORD OP) {
 			newT = (R);
 			break;
 		case 12:
-			newT = the_memory[t];
+			newT = the_memory[T];
 			break;
 		case 13:
 			newT = (N << T);
@@ -159,9 +152,9 @@ void executeALU(WORD IR) {
 // ---------------------------------------------------------------------
 // Where all the fun is ...
 // ---------------------------------------------------------------------
-void run_program(CELL start)
+void j1_emu(CELL start)
 {
-	running = 1;
+	running = 0;
 	PC = start;
 
 	while (running)
