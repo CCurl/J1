@@ -2,51 +2,34 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#define CELL_SZ 2
-#define MEM_SZ 8192
-#define WORD unsigned short
-#define CELL WORD
-
-#define bool int
-#define true 1
-#define false 0
-
-void j1_init();
-void j1_emu(CELL start);
-extern WORD the_memory[];
-extern WORD HERE;
+#include "j1.h"
 
 char base_fn[32];
 bool run_saved = true;
 bool is_temp = false;
 bool auto_run = false;
 
-#define BUF_SZ 1024
-char tib[BUF_SZ];
+#define TIB_SZ 1024
+char tib[TIB_SZ];
 char *toIn;
 FILE *input_fp = NULL;
 FILE *input_stack[16];
 int input_SP = 0;
 int isBye = 0;
 
-#define COMMA(val) the_memory[HERE++] = (val)
-#define MAKE_LIT(val) (0x8000 | val)
-#define MAKE_JMP(to)  (0x0000 | to)
-#define MAKE_JMPZ(to) (0x2000 | to)
-#define MAKE_CALL(to) (0x4000 | to)
-#define MAKE_ALU(val) (0x6000 | val)
-
 WORD curr_op = 0;
 
+// ---------------------------------------------------------------------
 char peekChar() {
 	return *(toIn);
 }
 
+// ---------------------------------------------------------------------
 char getChar() {
 	return (*toIn) ? *(toIn++) : 0;
 }
 
+// ---------------------------------------------------------------------
 char skipWS() {
 	char ch = getChar();
 	while (ch) {
@@ -59,23 +42,30 @@ char skipWS() {
 	return ch;
 }
 
+// ---------------------------------------------------------------------
 int getWord(char *word) {
 	char ch = skipWS();
 	int len = 0;
 	while (ch > 0x20) {
 		*(word++) = ch;
+		++len;
 		ch = getChar();
 	}
 	*word = 0;
 	return len;
 }
 
+// ---------------------------------------------------------------------
 int isNumber(char *word, WORD *value) {
 	int base = 10;
 	bool isNeg = false;
 	short num = 0;
 	*value = 0;
 
+	if ((strlen(word) == 3) && (*word == '\'') && (*(word+2) == '\'')) {
+		*value = *(word+1);
+		return true;
+	}
 	if (*word == '$') {
 		base = 16;
 		++word;
@@ -120,10 +110,10 @@ int isNumber(char *word, WORD *value) {
 	return true;
 }
 
+// ---------------------------------------------------------------------
 void parseWord(char *word) {
 	WORD num = 0;
 	if (isNumber(word, &num)) {
-		COMMA(MAKE_LIT(num));
 		if ((num & 0x8000) == 0) {
 			COMMA(MAKE_LIT(num));
 		} else {
@@ -134,17 +124,28 @@ void parseWord(char *word) {
 		}
 		return;
 	}
+	if (strcmp(word, "!") == 0) {
+		WORD op = opALU;
+		op |= bitStore;
+		op |= bitDecDSP;
+		op |= bitTgetsN;
+		COMMA(op);
+		return;
+	}
 	if (strcmp(word, "XXX") == 0) {
 		// do something ...
 		return;
 	}
+	printf("\nERROR: unknown word: [%s]\n", word);
 }
 
+// ---------------------------------------------------------------------
 void parseLine(char *line) {
 	char word[32];
 	toIn = line;
 	while (true) {
 		int len = getWord(word);
+		// printf("[%s]", word);
 		if (len) {
 			if (strcmp(word, "\\") == 0) { return; }
 			if (strcmp(word, "//") == 0) { return; }
@@ -155,18 +156,38 @@ void parseLine(char *line) {
 	}
 }
 
+// ---------------------------------------------------------------------
 void getLine(char *line) {
 }
 
-void doCompile() {
-	COMMA(MAKE_LIT(0xFFFF));
-	parseWord("4");
-	parseWord("0");
-	COMMA(MAKE_JMPZ(1));
-	COMMA(MAKE_JMP(0));
+// ---------------------------------------------------------------------
+void doCompile(FILE *fp) {
+	char *inSave = toIn;
+	while (true) {
+		if (fgets(tib, TIB_SZ, fp) == tib) {
+			parseLine(tib);
+		} else {
+			toIn = inSave;
+			return;
+		}
+	}
 }
 
 // ---------------------------------------------------------------------
+void saveImage() {
+	char fn[32];
+	sprintf(fn, "%s.bin", base_fn);
+	printf("\nWriting image to %s ...", fn);
+	FILE *fp = fopen(fn, "wb");
+	if (fp) {
+		fwrite(the_memory, 1, memory_size, fp);
+		fclose(fp);
+		printf(" done");
+	} else {
+		printf(" ERROR: unable to open file");
+	}
+}
+
 // ---------------------------------------------------------------------
 // ---------------------------------------------------------------------
 // ---------------------------------------------------------------------
@@ -189,12 +210,6 @@ void parse_arg(char *arg)
 	}
 }
 
-
-// ---------------------------------------------------------------------
-// ---------------------------------------------------------------------
-// ---------------------------------------------------------------------
-// ---------------------------------------------------------------------
-// ---------------------------------------------------------------------
 // ---------------------------------------------------------------------
 int main (int argc, char **argv)
 {
@@ -205,10 +220,23 @@ int main (int argc, char **argv)
 		if (*cp == '-') { parse_arg(++cp); }
 	}
 
+	char fn[32];
+	sprintf(fn, "%s.src", base_fn);
+	FILE *fp = fopen(fn, "rt");
+	if (fp) {
+		doCompile(fp);
+		fclose(fp);
+	}
+
 	j1_init();
-	doCompile();
 	j1_emu(0);
 
-	printf("\nj1 exiting");
+	printf("\ndata stack:");
+	dumpStack(DSP, dstk);
+	printf("\nreturn stack:");
+	dumpStack(RSP, rstk);
+
+	saveImage();
+	printf("\nexiting");
 	return 0;
 }

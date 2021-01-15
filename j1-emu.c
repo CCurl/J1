@@ -1,15 +1,10 @@
 // J1 white paper is here: https://excamera.com/files/j1.pdf
 
 #include <stdio.h>
-
-#define CELL_SZ 2
-#define MEM_SZ 8192
-#define WORD unsigned short
-#define CELL WORD
+#include "j1.h"
 
 WORD the_memory[MEM_SZ];
 
-#define STK_SZ 16
 CELL dstk[STK_SZ+1];
 int DSP = 0;
 
@@ -19,10 +14,7 @@ int RSP = 0;
 CELL PC;
 CELL newT;
 
-#define T dstk[DSP]
-#define N dstk[(DSP > 0) ? (DSP-1) : 0]
-#define R rstk[RSP]
-
+const WORD memory_size = MEM_SZ;
 int running = 0;
 CELL HERE = 0;
 
@@ -92,7 +84,7 @@ void setNewT(WORD OP) {
 // ---------------------------------------------------------------------
 void executeALU(WORD IR) {
 	// Lower 13 bits ...
-	// R->PC               [12:12] xxxR xxxx xxxx xxxx (IR >> 12) & 0x0001
+	// R->PC               [12:12] xxx1 xxxx xxxx xxxx (IR >> 12) & 0x0001
 	// T'                  [11:08] xxxx NNNN xxxx xxxx (IR >> 11) & 0x000F
 	// T->N                [07:07] xxxx xxxx 1xxx xxxx (IR >>  7) & 0x0001
 	// T->R                [06:06] xxxx xxxx x1xx xxxx (IR >>  6) & 0x0001
@@ -109,26 +101,35 @@ void executeALU(WORD IR) {
 	WORD origN = N;
 	WORD origT = T;
 	setNewT((IR >> 8) & 0x0F);
-	if ((IR >> 12) & 0x0001) {
-		PC = R;
-	}
-	switch ((IR >> 2) & 0x0003) {
-		case 1: RSP += (RSP < STK_SZ) ? 1 : 0;  break;
-		case 3: RSP -= (RSP > 0) ? 1 : 0;       break;
-	}
-	switch (IR & 0x0003) {
-		case 1: DSP += (DSP < STK_SZ) ? 1 : 0;  break;
-		case 3: DSP -= (DSP > 0) ? 1 : 0;       break;
-	}
-	if ((IR >> 7) & 0x0001) {
-		N = origT;
-	}
-	if ((IR >> 6) & 0x0001) {
-		R = origT;
-	}
-	if ((IR >> 5) & 0x0001) {
-		the_memory[origT] = origN;
-		// BUG HERE? DSP -= (DSP > 0) ? 1 : 0;
+	
+	if (IR & bitRtoPC) { PC = R; }
+	if (IR & bitDecDSP) { DSP--; }
+	if (IR & bitIncDSP) { DSP++; }
+	if (IR & bitDecRSP) { RSP--; }
+	if (IR & bitIncRSP) { RSP++; }
+	if (IR & bitTtoN) { N = origT; }
+	if (IR & bitTtoR) { R = origT; }
+	if (IR & bitStore) {
+		if ((0 <= origT) && (origT < MEM_SZ)) {
+			the_memory[origT] = origN;
+		} else {
+			int portNum = origT & 0xFF;			
+			switch (portNum)
+			{
+			case emitPort:
+				printf("%c", origN);
+				break;
+			
+			case 2:
+				printf("%d", origN);
+				break;
+			
+			default:
+				printf("-invalid port #%d-", portNum);
+			}
+		}
+		DSP -= (DSP > 0) ? 1 : 0;
+		newT = T;
 	}
 	T = newT;
 }
@@ -154,6 +155,8 @@ void j1_emu(CELL start)
 		// 001x => JMPZ (001x xxxx xxxx xxxx) (IR & 0x6000) == 0x2000
 		// 010x => CALL (010x xxxx xxxx xxxx) (IR & 0x6000) == 0x4000
 		// 011x => ALU  (011x xxxx xxxx xxxx) (IR & 0x6000) == 0x6000
+		// (0110000000000000)
+		// (0000000000000011)
 
 		if ((IR & 0x8000) != 0x0000) {             // LITERAL
 			DSP += (DSP < STK_SZ) ? 1 : 0;
@@ -176,4 +179,12 @@ void j1_emu(CELL start)
 			executeALU(IR);
 		}
 	}
+}
+
+void dumpStack(int sp, WORD *stk) {
+	printf("(");
+	for (int i = 1; i <= sp; i++) {
+		printf(" %d", stk[i]);
+	}
+	printf(" )");
 }
