@@ -9,6 +9,8 @@ bool run_saved = true;
 bool is_temp = false;
 bool auto_run = false;
 
+#define LAST_OP the_memory[HERE-1]
+
 #define TIB_SZ 1024
 char tib[TIB_SZ];
 char *toIn;
@@ -17,7 +19,10 @@ FILE *input_stack[16];
 int input_SP = 0;
 int isBye = 0;
 
-WORD curr_op = 0;
+DICT_T words[256];
+int numWords = 0;
+
+WORD STATE = 0;
 
 // ---------------------------------------------------------------------
 char peekChar() {
@@ -110,12 +115,34 @@ int isNumber(char *word, WORD *value) {
 	return true;
 }
 
+void defineWord(char *name) {
+	DICT_T *p = &words[numWords++];
+	strcpy(p->name, name);
+	p->xt = HERE;
+	p->flags = 0;
+	p->len = strlen(name);
+	printf("\nDefined [%s] at #%d", name, numWords);
+}
+
+// ---------------------------------------------------------------------
+DICT_T *findWord(char *word) {
+	for (int i = 0; i< numWords; i++) {
+		if (strcmp(words[i].name, word) == 0) {
+			return &words[i];
+		}
+	}
+	return NULL;
+}
+
 // ---------------------------------------------------------------------
 void parseWord(char *word) {
+	printf("\n[%s] (HERE=%d), LAST_OP=%04X", word, HERE, LAST_OP);
 	WORD num = 0;
+	WORD op = LAST_OP;
 	if (isNumber(word, &num)) {
 		if ((num & 0x8000) == 0) {
-			COMMA(MAKE_LIT(num));
+			op = MAKE_LIT(num);
+			COMMA(op);
 		} else {
 			// For numbers larger than 0x7FFF
 			num = ~num;
@@ -124,12 +151,83 @@ void parseWord(char *word) {
 		}
 		return;
 	}
-	if (strcmp(word, "!") == 0) {
-		WORD op = opALU;
-		op |= bitStore;
-		op |= bitDecDSP;
-		op |= bitTgetsN;
+	DICT_T *w = findWord(word);
+	if (w) {
+		op = MAKE_CALL(w->xt);
 		COMMA(op);
+		return;
+	}
+	if (strcmp(word, ":") == 0) {
+		getWord(word);
+		defineWord(word);
+		STATE = 1;
+		return;
+	}
+	if (strcmp(word, ";") == 0) {
+		STATE = 0;
+		// Change last operation to JMP if CALL
+		if ((LAST_OP & opLIT) == 0) {
+			if ((LAST_OP & 0x6000) == opCALL) {
+				LAST_OP = (LAST_OP & 0x1FFF) | opJMP;
+				printf("\nchanged op at %d to JMP", HERE-1);
+				return;
+			}
+		}
+		bool canAddRet = true;
+		if ((LAST_OP & opLIT) != 0)      canAddRet = false; // not LITERAL
+		if ((LAST_OP & 0x6000) != opALU) canAddRet = false; // not ALU
+		if ((LAST_OP & bitRtoPC) != 0)   canAddRet = false; // R->PC already set
+		if ((LAST_OP & bitIncRSP) != 0)  canAddRet = false; // R++ set
+		if ((LAST_OP & bitDecRSP) != 0)  canAddRet = false; // R-- already set
+		if (canAddRet) {
+			LAST_OP |= bitRtoPC;
+			LAST_OP |= bitDecRSP;
+			printf("\nAdded %04X to ALU op at %d", (bitDecDSP|bitRtoPC), HERE-1);
+			return;
+		}
+		// cannot include in previous op :(
+		op = opALU;
+		op |= bitRtoPC;
+		op |= bitDecRSP;
+		COMMA(op);
+		return;
+	}
+	if (strcmp(word, "ALU") == 0) {
+		printf(" ALU->%d", HERE);
+		op = opALU;
+		COMMA(op);
+		return;
+	}
+	if (strcmp(word, "T<-N") == 0) {
+		LAST_OP |= aluTgetsN;
+		return;
+	}
+	if (strcmp(word, "T<-T") == 0) {
+		LAST_OP |= aluTgetsT;
+		return;
+	}
+	if (strcmp(word, "N->[T]") == 0) {
+		LAST_OP |= bitStore;
+		return;
+	}
+	if (strcmp(word, "R->PC") == 0) {
+		LAST_OP |= bitRtoPC;
+		return;
+	}
+	if (strcmp(word, "++RSP") == 0) {
+		LAST_OP |= bitIncRSP;
+		return;
+	}
+	if (strcmp(word, "--RSP") == 0) {
+		LAST_OP |= bitDecRSP;
+		return;
+	}
+	if (strcmp(word, "++DSP") == 0) {
+		LAST_OP |= bitIncDSP;
+		return;
+	}
+	if (strcmp(word, "--DSP") == 0) {
+		LAST_OP |= bitDecDSP;
 		return;
 	}
 	if (strcmp(word, "XXX") == 0) {
@@ -170,6 +268,45 @@ void doCompile(FILE *fp) {
 			toIn = inSave;
 			return;
 		}
+	}
+}
+
+// ---------------------------------------------------------------------
+void doDisassemble(bool toFile) {
+	FILE *fp = NULL;
+	if (toFile) {
+		char fn[32];
+		sprintf(fn, "%s.lst", base_fn);
+		fp = fopen(fn, "wt");
+		if (!fp) {
+			printf("\nUnable to create listing file '%s'.", fn);
+			return;
+		}
+		fprintf(fp, "; HERE: %04X\n", HERE);
+		printf("\nWriting listing file '%s' ...", fn);
+	}
+
+	char buf[256];
+	for (int i = 0; i < numWords; i++) {
+		DICT_T *p = &words[i];
+		sprintf(buf, "; %2d: XT: %04X, Len: %2d, Flags: %02X, Name: %s\n", i,
+			p->xt, p->len, p->flags, p->name);
+		fp ? fprintf(fp, "%s", buf) : printf("%s", buf);
+	}
+
+	for (int i = 0; i < HERE; i++) {
+		WORD ir = the_memory[i];
+		disIR(ir, buf);
+		if (fp) {
+			fprintf(fp, "\n%04X: %04X    ", i, ir);
+			fprintf(fp, "%s", buf);
+		} else {
+			printf("\n%04X: %04X    ", i, ir);
+			printf("%s", buf);
+		}
+	}
+	if (fp) {
+		fclose(fp);
 	}
 }
 
@@ -220,6 +357,15 @@ int main (int argc, char **argv)
 		if (*cp == '-') { parse_arg(++cp); }
 	}
 
+	// disIR(MAKE_LIT(66), NULL);
+	// disIR(MAKE_JMP(67), NULL);
+	// disIR(MAKE_JMPZ(68), NULL);
+	// disIR(MAKE_CALL(69), NULL);
+	// disIR(0x7FFF, NULL);
+
+	j1_init();
+	COMMA(MAKE_JMP(0));
+
 	char fn[32];
 	sprintf(fn, "%s.src", base_fn);
 	FILE *fp = fopen(fn, "rt");
@@ -228,8 +374,9 @@ int main (int argc, char **argv)
 		fclose(fp);
 	}
 
-	j1_init();
-	j1_emu(0);
+	the_memory[0] = MAKE_JMP(words[numWords-1].xt);
+	doDisassemble(true);
+	j1_emu(0, 20);
 
 	printf("\ndata stack:");
 	dumpStack(DSP, dstk);

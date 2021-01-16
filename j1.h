@@ -1,6 +1,5 @@
 // J1 white paper is here: https://excamera.com/files/j1.pdf
 
-#include <stdio.h>
 
 #define STK_SZ 16
 #define MEM_SZ 8192
@@ -8,6 +7,7 @@
 #define CELL_SZ 2
 #define WORD unsigned short
 #define CELL WORD
+#define byte unsigned char  
 
 #define bool int
 #define true 1
@@ -29,7 +29,24 @@
 #define opALU     (0x6000)
 #define opLIT     (0x8000)
 
-#define bitTgetsN (0x01 <<  8)
+#define aluTgetsT (0x0000)
+#define aluTgetsN (0x0100)
+#define aluTplusN (0x0200)
+#define aluTandN  (0x0300)
+#define aluTorN   (0x0400)
+#define aluTxorN  (0x0500)
+#define aluNotT   (0x0600)
+#define aluTeqN   (0x0700)
+#define aluTltN   (0x0800)
+#define aluSHR    (0x0900)
+#define alu10   (0x0A00)
+#define alu11   (0x0B00)
+#define alu12   (0x0C00)
+#define alu13   (0x0D00)
+#define alu14   (0x0E00)
+#define alu15   (0x0F00)
+
+#define setALUcode(op, code) (op |= ((code & 0x0f) << 8))
 
 #define emitPort 1
 
@@ -44,6 +61,13 @@
 #define R rstk[RSP]
 
 #define COMMA(val) the_memory[HERE++] = val
+
+typedef struct {
+	char name[24];
+	byte flags;
+	byte len;
+	WORD xt;
+} DICT_T;
 
 extern WORD the_memory[];
 
@@ -64,7 +88,8 @@ extern CELL HERE;
 void j1_init();
 void setNewT(WORD OP);
 void executeALU(WORD IR);
-void j1_emu(CELL start);
+void j1_emu(CELL start, int maxCycles);
 void dumpStack(int sp, WORD *stk);
+void disIR(WORD IR, char *output);
 // ---------------------------------------------------------------------
 

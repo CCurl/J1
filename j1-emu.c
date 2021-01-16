@@ -1,6 +1,7 @@
 // J1 white paper is here: https://excamera.com/files/j1.pdf
 
 #include <stdio.h>
+#include <string.h>
 #include "j1.h"
 
 WORD the_memory[MEM_SZ];
@@ -29,53 +30,54 @@ void j1_init()
 
 // ---------------------------------------------------------------------
 void setNewT(WORD OP) {
+	int op = (OP & 0x0F00) >> 8;
 	switch (OP) {
-		case 0:
+		case 0: // #define newT_T 0x00
 			newT = T;
 			break;
-		case 1:
+		case 1: // #define newT_N 0x01
 			newT = N;
 			break;
-		case 2:
+		case 2: // #define newT_ADD 0x02
 			newT = (T + N);
 			break;
-		case 3:
+		case 3: // #define newT_AND 0x03
 			newT = (T & N); // AND
 			break;
-		case 4:
+		case 4: // #define newT_OR 0x04
 			newT = (T | N); // OR
 			break;
-		case 5:
+		case 5: // #define newT_XOR 0x05
 			newT = (T ^ N); // XOR
 			break;
-		case 6:
+		case 6: // #define newT_NOT 0x06
 			newT = (~T); // NOT (aka - INVERT)
 			break;
-		case 7:
+		case 7: // #define newT_EQ 0x07
 			newT = (N == T) ? 1 : 0;
 			break;
-		case 8:
+		case 8: // #define newT_LT 0x08
 			newT = (N < T) ? 1 : 0;
 			break;
-		case 9:
+		case 9: // #define newT_SHR 0x09
 			newT = (N >> T);
 			break;
-		case 10:
+		case 10: // #define newT_DEC 0x0A
 			newT = (T-1);
 			break;
-		case 11:
+		case 11: // #define newT_R 0x0B
 			newT = R;
 			break;
-		case 12:
+		case 12: // #define newT_FETCH 0x0C
 			newT = the_memory[T];
 			break;
-		case 13:
+		case 13: // #define newT_SHL 0x0D
 			newT = (N << T);
 			break;
-		case 14:
+		case 14: // #define newT_DEPTH 0x0E
 			newT = DSP;
 			break;
-		case 15:
+		case 15: // #define newT_NuT 0x0F
 			newT = 0; // what is (Nu<T) ?
 			break;
 	}
@@ -135,7 +137,7 @@ void executeALU(WORD IR) {
 }
 
 // ---------------------------------------------------------------------
-void j1_emu(CELL start)
+void j1_emu(CELL start, int maxCycles)
 {
 	int cycle = 0;
 	running = 1;
@@ -143,9 +145,11 @@ void j1_emu(CELL start)
 
 	while (running)
 	{
-		printf("\nPC: %-3d DSP: %-2d N: %-5d T: %-5d", PC, DSP, N, T);
+		if (maxCycles) {
+			running = (++cycle >= maxCycles) ? 0 : 1;
+		}
+		printf("\nPC: %-4d DSP: %-2d N: %-5d T: %-5d", PC, DSP, N, T);
 		printf(" RSP: %-2d R: %-3d cycle: %-3d", RSP, R, cycle);
-		running = (++cycle > 20) ? 0 : 1;
         WORD IR = the_memory[PC++];
 		printf(" IR: %04X", IR);
 
@@ -187,4 +191,63 @@ void dumpStack(int sp, WORD *stk) {
 		printf(" %d", stk[i]);
 	}
 	printf(" )");
+}
+
+void disALU(WORD IR, char *output) {
+	strcat(output, "\n        ");
+
+	WORD aluOp = IR & 0x0F00;
+	if (aluOp == aluTgetsT) { strcat(output, " T<-T"); }
+	if (aluOp == aluTgetsN) { strcat(output, " T<-N"); }
+	if (aluOp == aluTplusN) { strcat(output, " T<-(T+N)"); }
+	if (aluOp == aluTandN)  { strcat(output, " T<-(TandN)"); }
+	if (aluOp == aluTorN)   { strcat(output, " T<-(TorN)"); }
+	if (aluOp == aluTxorN)  { strcat(output, " T<-(TxorN)"); }
+	if (aluOp == aluNotT)   { strcat(output, " T<-(notT)"); }
+	if (aluOp == aluTeqN)   { strcat(output, " T<-(T==N)"); }
+	if (aluOp == aluTltN)   { strcat(output, " T<-(T<N)"); }
+	if (aluOp == aluSHR)    { strcat(output, " T<-(N>>T)"); }
+	if (aluOp == alu10) { strcat(output, " T<-(XXX)"); }
+	if (aluOp == alu11) { strcat(output, " T<-(XXX)"); }
+	if (aluOp == alu12) { strcat(output, " T<-(XXX)"); }
+	if (aluOp == alu13) { strcat(output, " T<-(XXX)"); }
+	if (aluOp == alu14) { strcat(output, " T<-(XXX)"); }
+	if (aluOp == alu15) { strcat(output, " T<-(XXX)"); }
+
+	if (IR & bitTtoN)    { strcat(output, " T->N"); }
+	if (IR & bitTtoR)    { strcat(output, " T->R"); }
+	if (IR & bitStore)   { strcat(output, " N->[T]"); }
+	if (IR & bitUnused)  { strcat(output, " (unused)"); }
+	if (IR & bitDecDSP)  { strcat(output, " --DSP"); }
+	if (IR & bitIncDSP)  { strcat(output, " ++DSP"); }
+	if (IR & bitIncRSP)  { strcat(output, " ++RSP"); }
+	if (IR & bitRtoPC)   { strcat(output, " R->PC"); }
+	if (IR & bitDecRSP)  { strcat(output, " --RSP"); }
+}
+
+void disIR(WORD IR, char *output) {
+	char buf[256];
+	sprintf(buf, "Unknown IR %04X", IR);
+	if ((IR & opLIT) == opLIT) {
+		WORD val = IR & 0x7FFF;
+		sprintf(buf, "%-8s %-5d   # (0x%04X)", "LIT", val, val);
+	} else if ((IR & 0x7000) == 0) {
+		WORD val = IR & (0x1FFF);
+		sprintf(buf, "%-8s %-5d   # (0x%04X)", "JMP", val, val);
+	} else if ((IR & 0x6000) == 0x2000) {
+		WORD val = IR & (0x1FFF);
+		sprintf(buf, "%-8s %-5d   # (0x%04X)", "JMPZ", val, val);
+	} else if ((IR & 0x6000) == 0x4000) {
+		WORD val = IR & (0x1FFF);
+		sprintf(buf, "%-8s %-5d   # (0x%04X)", "CALL", val, val);
+	} else if ((IR & 0x6000) == 0x6000) {
+		WORD val = IR & (0x1FFF);
+		sprintf(buf, "%-8s %-5d   # (0x%04X)", "ALU", val, val);
+		disALU(IR, buf);
+	}
+	if (output) {
+		strcpy(output, buf);
+	} else {
+		printf("\n%s", buf);
+	}
 }
