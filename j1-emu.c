@@ -16,6 +16,7 @@ CELL PC;
 
 const WORD memory_size = MEM_SZ;
 int running = 0;
+long cycle;
 
 // ---------------------------------------------------------------------
 void j1_init()
@@ -80,6 +81,7 @@ void executeALU(WORD IR) {
 	// RSP -= 1            [01:00] xxxx xxxx xxxx xx1x (IR & 0x0003) == 0x0003
 	// RSP += 1            [01:00] xxxx xxxx xxxx xxx1 (IR & 0x0003) == 0x0001
 	WORD tPrime = getTprime((IR & 0x0F00) >> 8);
+	// disIR(IR, NULL);
 	
 	if (IR & bitRtoPC) { PC = R; }
 	if (IR & bitStore) {
@@ -107,16 +109,14 @@ void executeALU(WORD IR) {
 }
 
 // ---------------------------------------------------------------------
-void j1_emu(CELL start, int maxCycles)
+void j1_emu(CELL start, long maxCycles)
 {
-	int cycle = 0;
+	cycle = 0;
 	running = 1;
 	PC = start;
 	while (running)
 	{
-		// printf("\nPC: %04X  DSP: %-2d N: %-5d T: %-5d", PC, DSP, N, T);
-		// printf(" RSP: %-2d R: %-3d cycle: %-3d", RSP, R, cycle);
-		// printf(" IR: %04X", the_memory[PC]);
+		// dumpState(false);
         WORD IR = the_memory[PC++];
 
 		// The top 3 bits identify the class of operation ...
@@ -153,6 +153,12 @@ void j1_emu(CELL start, int maxCycles)
 			running = false;
 		}
 	}
+}
+
+void dumpState(bool lastPC) {
+		printf("\nPC: %04X  DSP: %-2d N: %-5d T: %-5d", PC, DSP, N, T);
+		printf(" RSP: %-2d R: %-3d cycle: %-4ld", RSP, R, cycle);
+		printf(" IR: %04X", the_memory[PC - ((lastPC) ? 1 : 0)]);
 }
 
 void dumpStack(int sp, WORD *stk) {

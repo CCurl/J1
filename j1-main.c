@@ -18,7 +18,7 @@ FILE *input_fp = NULL;
 FILE *input_stack[16];
 int input_SP = 0;
 
-DICT_T words[256];
+DICT_T words[2048];
 WORD numWords = 0;
 
 WORD HERE = 0;
@@ -418,7 +418,7 @@ int main (int argc, char **argv)
 
 	the_memory[0] = MAKE_JMP(words[numWords-1].xt);
 	doDisassemble(true);
-	j1_emu(0, 20);
+	j1_emu(0, 0);
 
 	printf("\ndata stack:");
 	dumpStack(DSP, dstk);
