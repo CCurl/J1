@@ -44,9 +44,9 @@
 #define aluSHR    (0x0900)
 #define aluDecT   (0x0A00)
 #define aluTgetsR (0x0B00)
-#define alu12     (0x0C00)
-#define alu13     (0x0D00)
-#define alu14     (0x0E00)
+#define aluFetch  (0x0C00)
+#define aluSHL    (0x0D00)
+#define aluDepth  (0x0E00)
 #define alu15     (0x0F00)
 
 #define setALUcode(op, code) (op |= ((code & 0x0f) << 8))
@@ -82,7 +82,7 @@ extern CELL rstk[];
 extern int RSP;
 
 extern CELL PC;
-extern CELL newT;
+extern CELL tPrime;
 
 extern const WORD memory_size;
 extern int running;
@@ -90,7 +90,6 @@ extern CELL HERE;
 
 // ---------------------------------------------------------------------
 void j1_init();
-void setNewT(WORD OP);
 void executeALU(WORD IR);
 void j1_emu(CELL start, int maxCycles);
 void dumpStack(int sp, WORD *stk);

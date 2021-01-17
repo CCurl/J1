@@ -121,7 +121,7 @@ void defineWord(char *name) {
 	p->xt = HERE;
 	p->flags = 0;
 	p->len = 0;
-	printf("\nDefined [%s] at #%d", name, numWords);
+	// printf("\nDefined [%s] at #%d", name, numWords);
 }
 
 // ---------------------------------------------------------------------
@@ -136,7 +136,7 @@ DICT_T *findWord(char *word) {
 
 // ---------------------------------------------------------------------
 void parseWord(char *word) {
-	printf("\n[%s] (HERE=%d), LAST_OP=%04X", word, HERE, LAST_OP);
+	// printf("\n[%s] (HERE=%d), LAST_OP=%04X", word, HERE, LAST_OP);
 	WORD num = 0;
 	WORD op = LAST_OP;
 	if (isNumber(word, &num)) {
@@ -185,7 +185,7 @@ void parseWord(char *word) {
 		// Change last operation to JMP if CALL
 		if ((LAST_OP & 0xE000) == opCALL) {
 			LAST_OP = (LAST_OP & 0x1FFF) | opJMP;
-			printf("\nchanged op at %d to JMP", HERE-1);
+			// printf("\nchanged op at %d to JMP", HERE-1);
 			return;
 		}
 		bool canAddRet = true;
@@ -196,7 +196,7 @@ void parseWord(char *word) {
 		if (canAddRet) {
 			LAST_OP |= bitRtoPC;
 			LAST_OP |= bitDecRSP;
-			printf("\nAdded %04X to ALU op at %d", (bitDecDSP|bitRtoPC), HERE-1);
+			// printf("\nAdded %04X to ALU op at %d", (bitDecDSP|bitRtoPC), HERE-1);
 			return;
 		}
 		// cannot include in previous op :(
@@ -208,7 +208,7 @@ void parseWord(char *word) {
 		return;
 	}
 	if (strcmp(word, "ALU") == 0) {
-		printf(" ALU->%d", HERE);
+		// printf(" ALU->%d", HERE);
 		op = opALU;
 		COMMA(op);
 		return;

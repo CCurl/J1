@@ -1,4 +1,4 @@
-; HERE: 002C
+; HERE: 002B
 ;  0: XT: 0001, Len:  1, Flags: 00, Name: dup
 ;  1: XT: 0002, Len:  1, Flags: 00, Name: drop
 ;  2: XT: 0003, Len:  1, Flags: 00, Name: swap
@@ -10,24 +10,23 @@
 ;  8: XT: 000C, Len:  4, Flags: 00, Name: nip-test
 ;  9: XT: 0010, Len:  3, Flags: 00, Name: swap-test
 ; 10: XT: 0013, Len:  4, Flags: 00, Name: drop-test
-; 11: XT: 0017, Len:  5, Flags: 00, Name: combo-test
-; 12: XT: 001C, Len:  2, Flags: 00, Name: emit-test
-; 13: XT: 001E, Len:  2, Flags: 00, Name: dot-test
-; 14: XT: 0020, Len:  4, Flags: 00, Name: r-test
-; 15: XT: 0024, Len:  7, Flags: 00, Name: r@-test
-; 16: XT: 002B, Len:  1, Flags: 00, Name: main
+; 11: XT: 0017, Len:  2, Flags: 00, Name: emit-test
+; 12: XT: 0019, Len:  2, Flags: 00, Name: dot-test
+; 13: XT: 001B, Len:  8, Flags: 00, Name: r-test
+; 14: XT: 0023, Len:  7, Flags: 00, Name: r@-test
+; 15: XT: 002A, Len:  1, Flags: 00, Name: main
 
-0000: 002B    JMP      43      # (0x002B)
+0000: 002A    JMP      42      # (0x002A)
 0001: 7006    ALU      4102    # (0x1006)
-         T<-T ++DSP R->PC --RSP
+     T'<-T   R->PC   --RSP   ++DSP
 0002: 710A    ALU      4362    # (0x110A)
-         T<-N --DSP R->PC --RSP
+     T'<-N   R->PC   --RSP   --DSP
 0003: 7182    ALU      4482    # (0x1182)
-         T<-N T->N R->PC --RSP
+     T'<-N   R->PC   --RSP   T->N
 0004: 700A    ALU      4106    # (0x100A)
-         T<-T --DSP R->PC --RSP
+     T'<-T   R->PC   --RSP   --DSP
 0005: 712A    ALU      4394    # (0x112A)
-         T<-N N->[T] --DSP R->PC --RSP
+     T'<-N   R->PC   N->[T]   --RSP   --DSP
 0006: C002    LIT      16386   # (0x4002)
 0007: 0005    JMP      5       # (0x0005)
 0008: C001    LIT      16385   # (0x4001)
@@ -45,30 +44,28 @@
 0014: 8016    LIT      22      # (0x0016)
 0015: 8021    LIT      33      # (0x0021)
 0016: 0002    JMP      2       # (0x0002)
-0017: 8001    LIT      1       # (0x0001)
-0018: 8002    LIT      2       # (0x0002)
-0019: 8003    LIT      3       # (0x0003)
-001A: 4003    CALL     3       # (0x0003)
-001B: 0001    JMP      1       # (0x0001)
-001C: 805A    LIT      90      # (0x005A)
-001D: 0008    JMP      8       # (0x0008)
-001E: B039    LIT      12345   # (0x3039)
-001F: 0006    JMP      6       # (0x0006)
-0020: 807B    LIT      123     # (0x007B)
-0021: 6149    ALU      329     # (0x0149)
-         T<-N T->R --DSP ++RSP
-0022: 6B06    ALU      2822    # (0x0B06)
-         T<-R ++DSP --RSP
-0023: 7002    ALU      4098    # (0x1002)
-         T<-T R->PC --RSP
-0024: 8000    LIT      0       # (0x0000)
+0017: 805A    LIT      90      # (0x005A)
+0018: 0008    JMP      8       # (0x0008)
+0019: B039    LIT      12345   # (0x3039)
+001A: 0006    JMP      6       # (0x0006)
+001B: 8000    LIT      0       # (0x0000)
+001C: 807B    LIT      123     # (0x007B)
+001D: 6149    ALU      329     # (0x0149)
+     T'<-N   ++RSP   T->R   --DSP
+001E: 4006    CALL     6       # (0x0006)
+001F: 828E    LIT      654     # (0x028E)
+0020: 4006    CALL     6       # (0x0006)
+0021: 6B06    ALU      2822    # (0x0B06)
+     T'<-R   --RSP   ++DSP
+0022: 0006    JMP      6       # (0x0006)
+0023: 8001    LIT      1       # (0x0001)
+0024: 6149    ALU      329     # (0x0149)
+     T'<-N   ++RSP   T->R   --DSP
 0025: 80EA    LIT      234     # (0x00EA)
-0026: 6149    ALU      329     # (0x0149)
-         T<-N T->R --DSP ++RSP
+0026: 4002    CALL     2       # (0x0002)
 0027: 6B04    ALU      2820    # (0x0B04)
-         T<-R ++DSP
+     T'<-R   ++DSP
 0028: 6B06    ALU      2822    # (0x0B06)
-         T<-R ++DSP --RSP
-0029: 4002    CALL     2       # (0x0002)
-002A: 0004    JMP      4       # (0x0004)
-002B: 0024    JMP      36      # (0x0024)
+     T'<-R   --RSP   ++DSP
+0029: 0002    JMP      2       # (0x0002)
+002A: 001B    JMP      27      # (0x001B)

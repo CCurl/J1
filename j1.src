@@ -9,9 +9,8 @@
 : nip-test 11 22 33 nip ;
 : swap-test 11 22 swap ;
 : drop-test 11 22 33 drop ;
-: combo-test 1 2 3 swap dup ;
 : emit-test 'Z' emit ;
 : dot-test 12345 . ;
-: r-test 123 >r r> ;
-: r@-test 0 234 >r r@ r> drop nip ;
-: main r@-test ;
+: r-test 0 123 >r . 654 . r> . ;
+: r@-test 1 >r 234 drop r@ r> drop ;
+: main r-test ;
