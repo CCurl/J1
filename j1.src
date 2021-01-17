@@ -1,4 +1,17 @@
-// $11 #222 %111 'A' 45 'B'
-: ! ALU T<-N N->[T] --DSP ; // at 0x0001
-: emit $4001 ! ;            // at 0x0002
-: main 'v' emit '1' emit ;  // at 0x0005
+: dup  ALU T<-T          ++DSP ;    //      INLINE
+: drop ALU T<-N          --DSP ;    //      INLINE
+: swap ALU T<-N   T->N         ;    //      INLINE
+: nip  ALU T<-T          --DSP ;    //      INLINE
+: !    ALU T<-N   N->[T] --DSP ;    //      INLINE
+: . $4002 ! ;
+: emit $4001 ! ;
+: dup-test 33 dup ;
+: nip-test 11 22 33 nip ;
+: swap-test 11 22 swap ;
+: drop-test 11 22 33 drop ;
+: combo-test 1 2 3 swap dup ;
+: emit-test 'Z' emit ;
+: dot-test 12345 . ;
+: r-test 123 >r r> ;
+: r@-test 0 234 >r r@ r> drop nip ;
+: main r@-test ;

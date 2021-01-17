@@ -13,6 +13,9 @@
 #define true 1
 #define false 0
 
+#define INSTR_MASK 0xE000
+#define ADDR_MASK  0x1FFF
+
 #define bitIncRSP (0x0001)
 #define bitDecRSP (0x0002)
 #define bitIncDSP (0x0004)
@@ -39,16 +42,17 @@
 #define aluTeqN   (0x0700)
 #define aluTltN   (0x0800)
 #define aluSHR    (0x0900)
-#define alu10   (0x0A00)
-#define alu11   (0x0B00)
-#define alu12   (0x0C00)
-#define alu13   (0x0D00)
-#define alu14   (0x0E00)
-#define alu15   (0x0F00)
+#define aluDecT   (0x0A00)
+#define aluTgetsR (0x0B00)
+#define alu12     (0x0C00)
+#define alu13     (0x0D00)
+#define alu14     (0x0E00)
+#define alu15     (0x0F00)
 
 #define setALUcode(op, code) (op |= ((code & 0x0f) << 8))
 
 #define emitPort 1
+#define dotPort 2
 
 #define MAKE_LIT(val) (0x8000 | val)
 #define MAKE_JMP(to)  (0x0000 | to)

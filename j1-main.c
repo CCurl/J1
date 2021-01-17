@@ -17,11 +17,11 @@ char *toIn;
 FILE *input_fp = NULL;
 FILE *input_stack[16];
 int input_SP = 0;
-int isBye = 0;
 
 DICT_T words[256];
-int numWords = 0;
+WORD numWords = 0;
 
+WORD HERE = 0;
 WORD STATE = 0;
 
 // ---------------------------------------------------------------------
@@ -120,7 +120,7 @@ void defineWord(char *name) {
 	strcpy(p->name, name);
 	p->xt = HERE;
 	p->flags = 0;
-	p->len = strlen(name);
+	p->len = 0;
 	printf("\nDefined [%s] at #%d", name, numWords);
 }
 
@@ -153,8 +153,18 @@ void parseWord(char *word) {
 	}
 	DICT_T *w = findWord(word);
 	if (w) {
-		op = MAKE_CALL(w->xt);
-		COMMA(op);
+		// INLINE is only for words where the last operation is ALU
+		if (w->flags & 0x01) {
+			WORD a = w->xt;
+			for (WORD i = 0; i < w->len; i++) {
+				COMMA(the_memory[a++]);
+			}
+			// Clear the R->PC bit
+			LAST_OP &= 0x6FFF;
+		} else {
+			op = MAKE_CALL(w->xt);
+			COMMA(op);
+		}
 		return;
 	}
 	if (strcmp(word, ":") == 0) {
@@ -163,19 +173,23 @@ void parseWord(char *word) {
 		STATE = 1;
 		return;
 	}
+	if (strcmp(word, "INLINE") == 0) {
+		if ((LAST_OP & 0xE000) == opALU) {
+			words[numWords-1].flags |= 1;
+		}
+		return;
+	}
 	if (strcmp(word, ";") == 0) {
 		STATE = 0;
+		words[numWords-1].len = (HERE - words[numWords-1].xt);
 		// Change last operation to JMP if CALL
-		if ((LAST_OP & opLIT) == 0) {
-			if ((LAST_OP & 0x6000) == opCALL) {
-				LAST_OP = (LAST_OP & 0x1FFF) | opJMP;
-				printf("\nchanged op at %d to JMP", HERE-1);
-				return;
-			}
+		if ((LAST_OP & 0xE000) == opCALL) {
+			LAST_OP = (LAST_OP & 0x1FFF) | opJMP;
+			printf("\nchanged op at %d to JMP", HERE-1);
+			return;
 		}
 		bool canAddRet = true;
-		if ((LAST_OP & opLIT) != 0)      canAddRet = false; // not LITERAL
-		if ((LAST_OP & 0x6000) != opALU) canAddRet = false; // not ALU
+		if ((LAST_OP & 0xE000) != opALU) canAddRet = false; // not ALU
 		if ((LAST_OP & bitRtoPC) != 0)   canAddRet = false; // R->PC already set
 		if ((LAST_OP & bitIncRSP) != 0)  canAddRet = false; // R++ set
 		if ((LAST_OP & bitDecRSP) != 0)  canAddRet = false; // R-- already set
@@ -190,6 +204,7 @@ void parseWord(char *word) {
 		op |= bitRtoPC;
 		op |= bitDecRSP;
 		COMMA(op);
+		words[numWords-1].len = (HERE - words[numWords-1].xt);
 		return;
 	}
 	if (strcmp(word, "ALU") == 0) {
@@ -206,12 +221,24 @@ void parseWord(char *word) {
 		LAST_OP |= aluTgetsT;
 		return;
 	}
+	if (strcmp(word, "T<-R") == 0) {
+		LAST_OP |= aluTgetsR;
+		return;
+	}
 	if (strcmp(word, "N->[T]") == 0) {
 		LAST_OP |= bitStore;
 		return;
 	}
 	if (strcmp(word, "R->PC") == 0) {
 		LAST_OP |= bitRtoPC;
+		return;
+	}
+	if (strcmp(word, "T->N") == 0) {
+		LAST_OP |= bitTtoN;
+		return;
+	}
+	if (strcmp(word, "T->R") == 0) {
+		LAST_OP |= bitTtoR;
 		return;
 	}
 	if (strcmp(word, "++RSP") == 0) {
@@ -228,6 +255,21 @@ void parseWord(char *word) {
 	}
 	if (strcmp(word, "--DSP") == 0) {
 		LAST_OP |= bitDecDSP;
+		return;
+	}
+	if (strcmp(word, ">r") == 0) {
+		op = MAKE_ALU(aluTgetsN|bitTtoR|bitIncRSP|bitDecDSP);
+		COMMA(op);
+		return;
+	}
+	if (strcmp(word, "r>") == 0) {
+		op = MAKE_ALU(aluTgetsR|bitDecRSP|bitIncDSP);
+		COMMA(op);
+		return;
+	}
+	if (strcmp(word, "r@") == 0) {
+		op = MAKE_ALU(aluTgetsR|bitIncDSP);
+		COMMA(op);
 		return;
 	}
 	if (strcmp(word, "XXX") == 0) {
