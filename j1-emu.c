@@ -158,9 +158,9 @@ void dumpState(bool lastPC) {
 }
 
 void dumpStack(int sp, WORD *stk) {
-	writePort_String("(");
+	writePort(emitPort, '(');
 	for (int i = 1; i <= sp; i++) {
-		writePort(emitPort, stk[i]);
+		writePort(dotPort, stk[i]);
 	}
 	writePort_String(" )");
 }
@@ -198,7 +198,7 @@ void disALU(WORD IR, char *output) {
 }
 
 void disIR(WORD IR, char *output) {
-	char buf[256];
+	char buf[128];
 	sprintf(buf, "Unknown IR %04X", IR);
 	if ((IR & opLIT) == opLIT) {
 		WORD val = (IR & 0x7FFF);
