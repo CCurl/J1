@@ -6,10 +6,13 @@
 
 char base_fn[32];
 bool run_saved = true;
-bool is_temp = false;
+bool save_output = true;
+bool debug_flag = false;
 bool auto_run = false;
 
 #define LAST_OP the_memory[HERE-1]
+#define emitPort 1
+#define dotPort 2
 
 #define TIB_SZ 1024
 char tib[TIB_SZ];
@@ -377,7 +380,6 @@ void doDisassemble(bool toFile) {
 			return;
 		}
 		fprintf(fp, "; HERE: 0x%04X (%d)\n", HERE, HERE);
-		printf("\nWriting listing file '%s' ...", fn);
 	}
 
 	char buf[256];
@@ -399,24 +401,27 @@ void doDisassemble(bool toFile) {
 			printf("%s", buf);
 		}
 	}
-	if (fp) {
-		fclose(fp);
-	}
+	if (fp) { fclose(fp); }
 }
 
 // ---------------------------------------------------------------------
 void saveImage() {
 	char fn[32];
 	sprintf(fn, "%s.bin", base_fn);
-	printf("\nWriting image to %s ...", fn);
 	FILE *fp = fopen(fn, "wb");
 	if (fp) {
 		fwrite(the_memory, 1, MEM_SZ, fp);
 		fclose(fp);
-		printf(" done");
 	} else {
-		printf(" ERROR: unable to open file");
+		printf(" ERROR: unable to open file '%s'", fn);
 	}
+}
+
+// ---------------------------------------------------------------------
+void writePort(WORD portNum, WORD val) {
+	portNum = (portNum & 0x0FFF);
+	if (portNum == emitPort) { printf("%c", N); }
+	if (portNum == dotPort)  { printf(" %d", N); }
 }
 
 // ---------------------------------------------------------------------
@@ -430,11 +435,20 @@ void parse_arg(char *arg)
 	// -a (auto-run)
 	if (*arg == 'a') auto_run = true;
 
+	// -t (temp)
+	if (*arg == 't') save_output = false;
+
+	// -d (debug)
+	if (*arg == 'd') debug_flag = true;
+
 	if (*arg == '?') {
 		printf("usage: j1 [options]\n");
-		printf("\t-f:baseFn (default: 'j1')\n");
+		printf("\t-f:baseFn  (default: 'j1')\n");
+		printf("\t -t (temp:  default: false)\n");
+		printf("\t -d (debug: default: false)\n");
 		printf("\nNotes ...");
 		printf("\n\n    -f:baseFn defines the base filename for the files in the working set.");
+		printf("\n    -t identfies that J1 should not write a .LST or .BIN file");
 
 		exit(0);
 	}
@@ -462,15 +476,17 @@ int main (int argc, char **argv)
 	}
 
 	the_memory[0] = MAKE_JMP(words[numWords-1].xt);
-	doDisassemble(true);
+	if (save_output) { doDisassemble(true); }
 	j1_emu(0, 0);
 
-	printf("\ndata stack:");
-	dumpStack(DSP, dstk);
-	printf("\nreturn stack:");
-	dumpStack(RSP, rstk);
+	if (debug_flag) {
+		doDisassemble(false);
+		printf("\ndata stack: ");
+		dumpStack(DSP, dstk);
+		printf("\nreturn stack: ");
+		dumpStack(RSP, rstk);
+	} 
 
-	saveImage();
-	printf("\nexiting");
+	if (save_output) { saveImage(); }
 	return 0;
 }

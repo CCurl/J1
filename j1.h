@@ -68,9 +68,6 @@
 
 #define setALUcode(op, code) (op |= ((code & 0x0f) << 8))
 
-#define emitPort 1
-#define dotPort 2
-
 #define MAKE_LIT(val)   (0x8000 | val)
 #define MAKE_JMP(addr)  (0x0000 | addr)
 #define MAKE_JMPZ(addr) (0x2000 | addr)
@@ -112,5 +109,6 @@ void j1_emu(CELL start, long maxCycles);
 void dumpState(bool lastPC);
 void dumpStack(int sp, WORD *stk);
 void disIR(WORD IR, char *output);
+void writePort(WORD portNum, WORD val);
 // ---------------------------------------------------------------------
 
