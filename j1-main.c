@@ -115,7 +115,7 @@ void defineWord(char *name) {
 	p->xt = HERE;
 	p->flags = 0;
 	p->len = 0;
-	if (debug_flag) printf("\nDefined [%s] at #%d", name, numWords);
+	if (debug_flag) writePort_StringF("\nDefined [%s] at #%d", name, numWords);
 }
 
 // ---------------------------------------------------------------------
@@ -130,7 +130,7 @@ DICT_T *findWord(char *word) {
 
 // ---------------------------------------------------------------------
 void parseWord(char *word) {
-	if (debug_flag) printf("\n[%s] (HERE=%d), LAST_OP=%04X", word, HERE, LAST_OP);
+	if (debug_flag) writePort_StringF("\n[%s] (HERE=%d), LAST_OP=%04X", word, HERE, LAST_OP);
 	WORD num = 0;
 	WORD op = LAST_OP;
 	if (isNumber(word, &num)) {
@@ -179,7 +179,7 @@ void parseWord(char *word) {
 		// Change last operation to JMP if CALL
 		if ((LAST_OP & 0xE000) == opCALL) {
 			LAST_OP = (LAST_OP & 0x1FFF) | opJMP;
-			if (debug_flag) printf("\nchanged op at %d to JMP", HERE-1);
+			if (debug_flag) writePort_StringF("\nchanged op at %d to JMP", HERE-1);
 			return;
 		}
 		bool canAddRet = true;
@@ -190,7 +190,7 @@ void parseWord(char *word) {
 		if (canAddRet) {
 			LAST_OP |= bitRtoPC;
 			LAST_OP |= bitDecRSP;
-			if (debug_flag) printf("\nAdded %04X to ALU op at %d", (bitDecDSP|bitRtoPC), HERE-1);
+			if (debug_flag) writePort_StringF("\nAdded %04X to ALU op at %d", (bitDecDSP|bitRtoPC), HERE-1);
 			return;
 		}
 		// cannot include in previous op :(
@@ -202,7 +202,7 @@ void parseWord(char *word) {
 		return;
 	}
 	if (strcmp(word, "ALU") == 0) {
-		if (debug_flag) printf(" ALU->%d", HERE);
+		if (debug_flag) writePort_StringF(" ALU->%d", HERE);
 		op = opALU;
 		COMMA(op);
 		return;
@@ -322,7 +322,7 @@ void parseWord(char *word) {
 		// do something ...
 		return;
 	}
-	printf("\nERROR: unknown word: [%s]\n", word);
+	writePort_StringF("\nERROR: unknown word: [%s]\n", word);
 	exitStatus = 1;
 }
 
@@ -332,7 +332,7 @@ void parseLine(char *line) {
 	toIn = line;
 	while (true) {
 		int len = getWord(word);
-		// printf("[%s]", word);
+		// writePort_StringF("[%s]", word);
 		if (len) {
 			if (strcmp(word, "\\") == 0) { return; }
 			if (strcmp(word, "//") == 0) { return; }
@@ -364,7 +364,7 @@ void doDisassemble(bool toFile) {
 		sprintf(fn, "%s.lst", base_fn);
 		fp = fopen(fn, "wt");
 		if (!fp) {
-			printf("\nUnable to create listing file '%s'.", fn);
+			writePort_StringF("\nUnable to create listing file '%s'.", fn);
 			return;
 		}
 		fprintf(fp, "; HERE: 0x%04X (%d)\n", HERE, HERE);
@@ -375,7 +375,7 @@ void doDisassemble(bool toFile) {
 		DICT_T *p = &words[i];
 		sprintf(buf, "; %2d: XT: %04X, Len: %2d, Flags: %02X, Name: %s\n", i,
 			p->xt, p->len, p->flags, p->name);
-		fp ? fprintf(fp, "%s", buf) : printf("%s", buf);
+		fp ? fprintf(fp, "%s", buf) : writePort_String(buf);
 	}
 
 	for (int i = 0; i < HERE; i++) {
@@ -385,8 +385,8 @@ void doDisassemble(bool toFile) {
 			fprintf(fp, "\n%04X: %04X    ", i, ir);
 			fprintf(fp, "%s", buf);
 		} else {
-			printf("\n%04X: %04X    ", i, ir);
-			printf("%s", buf);
+			writePort_StringF("\n%04X: %04X    ", i, ir);
+			writePort_String(buf);
 		}
 	}
 	if (fp) { fclose(fp); }
@@ -401,7 +401,7 @@ void saveImage() {
 		fwrite(the_memory, 1, MEM_SZ, fp);
 		fclose(fp);
 	} else {
-		printf(" ERROR: unable to open file '%s'", fn);
+		writePort_StringF(" ERROR: unable to open file '%s'", fn);
 	}
 }
 
@@ -415,13 +415,13 @@ void parse_arg(char *arg)
 	if (*arg == 'd') debug_flag  = true;
 
 	if (*arg == '?') {
-		printf("usage: j1 [options]\n");
-		printf("\t -f:baseFn  (default: 'j1')\n");
-		printf("\t -t (temp:  default: false)\n");
-		printf("\t -d (debug: default: false)\n");
-		printf("\nNotes ...");
-		printf("\n\n    -f:baseFn defines the base filename for the files in the working set.");
-		printf(  "\n    -t identfies that J1 should not write a .LST or .BIN file");
+		writePort_StringF("usage: j1 [options]\n");
+		writePort_StringF("\t -f:baseFn  (default: 'j1')\n");
+		writePort_StringF("\t -t (temp:  default: false)\n");
+		writePort_StringF("\t -d (debug: default: false)\n");
+		writePort_StringF("\nNotes ...");
+		writePort_StringF("\n\n    -f:baseFn defines the base filename for the files in the working set.");
+		writePort_StringF(  "\n    -t identfies that J1 should not write a .LST or .BIN file");
 
 		exit(0);
 	}
@@ -447,19 +447,20 @@ int main (int argc, char **argv)
 		doCompile(fp);
 		fclose(fp);
 	} else {
-		printf("ERROR: unable to open '%s'", fn);
+		writePort_StringF("ERROR: unable to open '%s'", fn);
 		return 1;
 	}
 
-	the_memory[0] = MAKE_JMP(words[numWords-1].xt);
+	if (numWords) { the_memory[0] = MAKE_JMP(words[numWords-1].xt); }
 	if (save_output) { doDisassemble(true); }
+
 	j1_emu(0, maxCycles);
 
 	if (debug_flag) {
 		doDisassemble(false);
-		printf("\ndata stack: ");
+		writePort_String("\ndata stack: ");
 		dumpStack(DSP, dstk);
-		printf("\nreturn stack: ");
+		writePort_String("\nreturn stack: ");
 		dumpStack(RSP, rstk);
 	} 
 

@@ -152,17 +152,17 @@ void j1_emu(CELL start, long maxCycles)
 }
 
 void dumpState(bool lastPC) {
-		printf("\nPC: %04X  DSP: %-2d N: %-5d T: %-5d", PC, DSP, N, T);
-		printf(" RSP: %-2d R: %-3d cycle: %-4ld", RSP, R, cycle);
-		printf(" IR: %04X", the_memory[PC - ((lastPC) ? 1 : 0)]);
+		writePort_StringF("\nPC: %04X  DSP: %-2d N: %-5d T: %-5d", PC, DSP, N, T);
+		writePort_StringF(" RSP: %-2d R: %-3d cycle: %-4ld", RSP, R, cycle);
+		writePort_StringF(" IR: %04X", the_memory[PC - ((lastPC) ? 1 : 0)]);
 }
 
 void dumpStack(int sp, WORD *stk) {
-	printf("(");
+	writePort_String("(");
 	for (int i = 1; i <= sp; i++) {
-		printf(" %d", stk[i]);
+		writePort(emitPort, stk[i]);
 	}
-	printf(" )");
+	writePort_String(" )");
 }
 
 void disALU(WORD IR, char *output) {
@@ -220,6 +220,7 @@ void disIR(WORD IR, char *output) {
 	if (output) {
 		strcpy(output, buf);
 	} else {
-		printf("\n%s", buf);
+		writePort_String("\n");
+		writePort_String(buf);
 	}
 }

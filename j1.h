@@ -77,6 +77,9 @@
 #define N dstk[(DSP > 0) ? (DSP-1) : 0]
 #define R rstk[RSP]
 
+#define emitPort   1
+#define dotPort    2
+
 typedef struct {
 	char name[24];
 	byte flags;
@@ -96,5 +99,8 @@ void executeALU(WORD IR);
 void j1_emu(CELL start, long maxCycles);
 void dumpStack(int sp, WORD *stk);
 void disIR(WORD IR, char *output);
+WORD readPort(WORD portNum);
 void writePort(WORD portNum, WORD val);
+void writePort_String(const char *str);
+void writePort_StringF(const char *fmt, ...);
 // ---------------------------------------------------------------------
