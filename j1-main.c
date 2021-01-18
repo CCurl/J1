@@ -1,36 +1,26 @@
-#include <winbase.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "j1.h"
 
 char base_fn[32];
-bool run_saved = true;
 bool save_output = true;
 bool debug_flag = false;
-bool auto_run = false;
+int exitStatus = 0;
+long maxCycles = 0;
 
 #define LAST_OP the_memory[HERE-1]
-#define emitPort 1
-#define dotPort 2
+#define COMMA(val) the_memory[HERE++] = val
 
 #define TIB_SZ 1024
 char tib[TIB_SZ];
 char *toIn;
-FILE *input_fp = NULL;
-FILE *input_stack[16];
-int input_SP = 0;
 
 DICT_T words[2048];
 WORD numWords = 0;
 
 WORD HERE = 0;
 WORD STATE = 0;
-
-// ---------------------------------------------------------------------
-char peekChar() {
-	return *(toIn);
-}
 
 // ---------------------------------------------------------------------
 char getChar() {
@@ -118,13 +108,14 @@ int isNumber(char *word, WORD *value) {
 	return true;
 }
 
+// ---------------------------------------------------------------------
 void defineWord(char *name) {
 	DICT_T *p = &words[numWords++];
 	strcpy(p->name, name);
 	p->xt = HERE;
 	p->flags = 0;
 	p->len = 0;
-	// printf("\nDefined [%s] at #%d", name, numWords);
+	if (debug_flag) printf("\nDefined [%s] at #%d", name, numWords);
 }
 
 // ---------------------------------------------------------------------
@@ -139,7 +130,7 @@ DICT_T *findWord(char *word) {
 
 // ---------------------------------------------------------------------
 void parseWord(char *word) {
-	// printf("\n[%s] (HERE=%d), LAST_OP=%04X", word, HERE, LAST_OP);
+	if (debug_flag) printf("\n[%s] (HERE=%d), LAST_OP=%04X", word, HERE, LAST_OP);
 	WORD num = 0;
 	WORD op = LAST_OP;
 	if (isNumber(word, &num)) {
@@ -188,7 +179,7 @@ void parseWord(char *word) {
 		// Change last operation to JMP if CALL
 		if ((LAST_OP & 0xE000) == opCALL) {
 			LAST_OP = (LAST_OP & 0x1FFF) | opJMP;
-			// printf("\nchanged op at %d to JMP", HERE-1);
+			if (debug_flag) printf("\nchanged op at %d to JMP", HERE-1);
 			return;
 		}
 		bool canAddRet = true;
@@ -199,7 +190,7 @@ void parseWord(char *word) {
 		if (canAddRet) {
 			LAST_OP |= bitRtoPC;
 			LAST_OP |= bitDecRSP;
-			// printf("\nAdded %04X to ALU op at %d", (bitDecDSP|bitRtoPC), HERE-1);
+			if (debug_flag) printf("\nAdded %04X to ALU op at %d", (bitDecDSP|bitRtoPC), HERE-1);
 			return;
 		}
 		// cannot include in previous op :(
@@ -211,7 +202,7 @@ void parseWord(char *word) {
 		return;
 	}
 	if (strcmp(word, "ALU") == 0) {
-		// printf(" ALU->%d", HERE);
+		if (debug_flag) printf(" ALU->%d", HERE);
 		op = opALU;
 		COMMA(op);
 		return;
@@ -332,6 +323,7 @@ void parseWord(char *word) {
 		return;
 	}
 	printf("\nERROR: unknown word: [%s]\n", word);
+	exitStatus = 1;
 }
 
 // ---------------------------------------------------------------------
@@ -349,10 +341,6 @@ void parseLine(char *line) {
 			return;
 		}
 	}
-}
-
-// ---------------------------------------------------------------------
-void getLine(char *line) {
 }
 
 // ---------------------------------------------------------------------
@@ -418,37 +406,22 @@ void saveImage() {
 }
 
 // ---------------------------------------------------------------------
-void writePort(WORD portNum, WORD val) {
-	portNum = (portNum & 0x0FFF);
-	if (portNum == emitPort) { printf("%c", N); }
-	if (portNum == dotPort)  { printf(" %d", N); }
-}
-
-// ---------------------------------------------------------------------
 // ---------------------------------------------------------------------
 // ---------------------------------------------------------------------
 void parse_arg(char *arg) 
 {
-	// -f:baseFn
 	if (*arg == 'f') strcpy(base_fn, arg+2);
-
-	// -a (auto-run)
-	if (*arg == 'a') auto_run = true;
-
-	// -t (temp)
 	if (*arg == 't') save_output = false;
-
-	// -d (debug)
-	if (*arg == 'd') debug_flag = true;
+	if (*arg == 'd') debug_flag  = true;
 
 	if (*arg == '?') {
 		printf("usage: j1 [options]\n");
-		printf("\t-f:baseFn  (default: 'j1')\n");
+		printf("\t -f:baseFn  (default: 'j1')\n");
 		printf("\t -t (temp:  default: false)\n");
 		printf("\t -d (debug: default: false)\n");
 		printf("\nNotes ...");
 		printf("\n\n    -f:baseFn defines the base filename for the files in the working set.");
-		printf("\n    -t identfies that J1 should not write a .LST or .BIN file");
+		printf(  "\n    -t identfies that J1 should not write a .LST or .BIN file");
 
 		exit(0);
 	}
@@ -473,11 +446,14 @@ int main (int argc, char **argv)
 	if (fp) {
 		doCompile(fp);
 		fclose(fp);
+	} else {
+		printf("ERROR: unable to open '%s'", fn);
+		return 1;
 	}
 
 	the_memory[0] = MAKE_JMP(words[numWords-1].xt);
 	if (save_output) { doDisassemble(true); }
-	j1_emu(0, 0);
+	j1_emu(0, maxCycles);
 
 	if (debug_flag) {
 		doDisassemble(false);
@@ -488,5 +464,5 @@ int main (int argc, char **argv)
 	} 
 
 	if (save_output) { saveImage(); }
-	return 0;
+	return exitStatus;
 }

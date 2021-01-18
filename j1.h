@@ -1,6 +1,5 @@
 // J1 white paper is here: https://excamera.com/files/j1.pdf
 
-
 #define STK_SZ 16
 #define MEM_SZ 8192
 
@@ -78,8 +77,6 @@
 #define N dstk[(DSP > 0) ? (DSP-1) : 0]
 #define R rstk[RSP]
 
-#define COMMA(val) the_memory[HERE++] = val
-
 typedef struct {
 	char name[24];
 	byte flags;
@@ -87,22 +84,13 @@ typedef struct {
 	WORD xt;
 } DICT_T;
 
+// ---------------------------------------------------------------------
 extern WORD the_memory[];
-
 extern CELL dstk[];
 extern int DSP;
-
 extern CELL rstk[];
 extern int RSP;
 
-extern CELL PC;
-extern CELL tPrime;
-
-extern const WORD memory_size;
-extern int running;
-extern CELL HERE;
-
-// ---------------------------------------------------------------------
 void j1_init();
 void executeALU(WORD IR);
 void j1_emu(CELL start, long maxCycles);
@@ -111,4 +99,3 @@ void dumpStack(int sp, WORD *stk);
 void disIR(WORD IR, char *output);
 void writePort(WORD portNum, WORD val);
 // ---------------------------------------------------------------------
-

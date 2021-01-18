@@ -91,6 +91,7 @@ void executeALU(WORD IR) {
 		if ((0 <= T) && (T < MEM_SZ)) the_memory[T] = N;
 		else writePort(T, N);
 		DSP--;
+		tPrime = N;
 	}
 	if (IR & bitTtoN) { N = T; }
 
