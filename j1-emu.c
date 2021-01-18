@@ -67,6 +67,19 @@ WORD getTprime(WORD IR) {
 }
 
 // ---------------------------------------------------------------------
+WORD writeMem() {
+	if ((0 <= T) && (T < MEM_SZ)) {
+		the_memory[T] = N;
+	} else {
+		int portNum = T & 0x0FFF;			
+		if (portNum == emitPort) { printf("%c", N); }
+		if (portNum == dotPort)  { printf(" %d", N); }
+	}
+	DSP--;
+	return N;
+}
+
+// ---------------------------------------------------------------------
 void executeALU(WORD IR) {
 	// Lower 13 bits ...
 	// R->PC               [12:12] xxx1 xxxx xxxx xxxx (IR >> 12) & 0x0001
@@ -83,24 +96,15 @@ void executeALU(WORD IR) {
 	// disIR(IR, NULL);
 	
 	if (IR & bitRtoPC) { PC = R; }
-	if (IR & bitStore) {
-		if ((0 <= T) && (T < MEM_SZ)) {
-			the_memory[T] = N;
-		} else {
-			int portNum = T & 0xFF;			
-			if (portNum == emitPort) { printf("%c", N); }
-			if (portNum == dotPort)  { printf(" %d", N); }
-		}
-		DSP--;
-		tPrime = N;
-	}
 	if (IR & bitIncRSP) { RSP++; }
 	if (IR & bitDecRSP) { RSP--; }
 	if (IR & bitTtoR) { R = T; }
+
+	if (IR & bitStore) { tPrime = writeMem(); }
 	if (IR & bitTtoN) { N = T; }
+
 	if (IR & bitIncDSP) { DSP++; }
 	if (IR & bitDecDSP) { DSP--; }
-
 	if (DSP < 1)      { DSP = 0; }
 	if (DSP > STK_SZ) { DSP = STK_SZ; }
 
