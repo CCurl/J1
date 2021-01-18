@@ -94,7 +94,6 @@ extern int RSP;
 void j1_init();
 void executeALU(WORD IR);
 void j1_emu(CELL start, long maxCycles);
-void dumpState(bool lastPC);
 void dumpStack(int sp, WORD *stk);
 void disIR(WORD IR, char *output);
 void writePort(WORD portNum, WORD val);

@@ -16,6 +16,7 @@ CELL PC;
 
 int running = 0;
 long cycle;
+void dumpState(bool);
 
 // ---------------------------------------------------------------------
 void j1_init()
@@ -82,10 +83,10 @@ void executeALU(WORD IR) {
 	WORD tPrime = getTprime(IR);
 	// disIR(IR, NULL);
 	
-	if (IR & bitRtoPC) { PC = R; }
+	if (IR & bitRtoPC)  { PC = R; }
 	if (IR & bitIncRSP) { RSP++; }
 	if (IR & bitDecRSP) { RSP--; }
-	if (IR & bitTtoR) { R = T; }
+	if (IR & bitTtoR)   { R = T; }
 
 	if (IR & bitStore) {
 		if ((0 <= T) && (T < MEM_SZ)) the_memory[T] = N;
@@ -97,8 +98,8 @@ void executeALU(WORD IR) {
 
 	if (IR & bitIncDSP) { DSP++; }
 	if (IR & bitDecDSP) { DSP--; }
-	if (DSP < 1)      { DSP = 0; }
-	if (DSP > STK_SZ) { DSP = STK_SZ; }
+	if (DSP < 0)        { DSP = 0; }
+	if (DSP > STK_SZ)   { DSP = STK_SZ; }
 
 	T = tPrime;
 }
