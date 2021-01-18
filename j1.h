@@ -47,18 +47,35 @@
 #define aluFetch  (0x0C00)
 #define aluSHL    (0x0D00)
 #define aluDepth  (0x0E00)
-#define alu15     (0x0F00)
+#define aluNuLtT  (0x0F00)
+
+#define tpTgetsT (0x00)
+#define tpTgetsN (0x01)
+#define tpTplusN (0x02)
+#define tpTandN  (0x03)
+#define tpTorN   (0x04)
+#define tpTxorN  (0x05)
+#define tpNotT   (0x06)
+#define tpTeqN   (0x07)
+#define tpTltN   (0x08)
+#define tpSHR    (0x09)
+#define tpDecT   (0x0A)
+#define tpTgetsR (0x0B)
+#define tpFetch  (0x0C)
+#define tpSHL    (0x0D)
+#define tpDepth  (0x0E)
+#define tpNuLtT  (0x0F)
 
 #define setALUcode(op, code) (op |= ((code & 0x0f) << 8))
 
 #define emitPort 1
 #define dotPort 2
 
-#define MAKE_LIT(val) (0x8000 | val)
-#define MAKE_JMP(to)  (0x0000 | to)
-#define MAKE_JMPZ(to) (0x2000 | to)
-#define MAKE_CALL(to) (0x4000 | to)
-#define MAKE_ALU(val) (0x6000 | val)
+#define MAKE_LIT(val)   (0x8000 | val)
+#define MAKE_JMP(addr)  (0x0000 | addr)
+#define MAKE_JMPZ(addr) (0x2000 | addr)
+#define MAKE_CALL(addr) (0x4000 | addr)
+#define MAKE_ALU(val)   (0x6000 | val)
 
 #define T dstk[DSP]
 #define N dstk[(DSP > 0) ? (DSP-1) : 0]
@@ -75,7 +92,7 @@ typedef struct {
 
 extern WORD the_memory[];
 
-extern CELL dstk[STK_SZ+1];
+extern CELL dstk[];
 extern int DSP;
 
 extern CELL rstk[];

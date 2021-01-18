@@ -126,7 +126,7 @@ void defineWord(char *name) {
 
 // ---------------------------------------------------------------------
 DICT_T *findWord(char *word) {
-	for (int i = 0; i< numWords; i++) {
+	for (int i = numWords-1; i >= 0; i--) {
 		if (strcmp(words[i].name, word) == 0) {
 			return &words[i];
 		}
@@ -159,8 +159,8 @@ void parseWord(char *word) {
 			for (WORD i = 0; i < w->len; i++) {
 				COMMA(the_memory[a++]);
 			}
-			// Clear the R->PC bit
-			LAST_OP &= 0x6FFF;
+			// Clear the R->PC and --RSP bits
+			LAST_OP &= 0xEFFD;
 		} else {
 			op = MAKE_CALL(w->xt);
 			COMMA(op);
@@ -213,16 +213,68 @@ void parseWord(char *word) {
 		COMMA(op);
 		return;
 	}
-	if (strcmp(word, "T<-N") == 0) {
-		LAST_OP |= aluTgetsN;
-		return;
-	}
-	if (strcmp(word, "T<-T") == 0) {
+	if (strcmp(word, "T'<-T") == 0) {
 		LAST_OP |= aluTgetsT;
 		return;
 	}
-	if (strcmp(word, "T<-R") == 0) {
+	if (strcmp(word, "T'<-N") == 0) {
+		LAST_OP |= aluTgetsN;
+		return;
+	}
+	if (strcmp(word, "T'<-R") == 0) {
 		LAST_OP |= aluTgetsR;
+		return;
+	}
+	if (strcmp(word, "T'<-(T+N)") == 0) {
+		LAST_OP |= aluTplusN;
+		return;
+	}
+	if (strcmp(word, "T'<-(TandN)") == 0) {
+		LAST_OP |= aluTandN;
+		return;
+	}
+	if (strcmp(word, "T'<-(TorN)") == 0) {
+		LAST_OP |= aluTorN;
+		return;
+	}
+	if (strcmp(word, "T'<-(TxorN)") == 0) {
+		LAST_OP |= aluTxorN;
+		return;
+	}
+	if (strcmp(word, "T'<-(notT)") == 0) {
+		LAST_OP |= aluNotT;
+		return;
+	}
+	if (strcmp(word, "T'<-(T=N)") == 0) {
+		LAST_OP |= aluTeqN;
+		return;
+	}
+	if (strcmp(word, "T'<-(T<N)") == 0) {
+		LAST_OP |= aluTltN;
+		return;
+	}
+	if (strcmp(word, "T'<-(N>>T)") == 0) {
+		LAST_OP |= aluSHR;
+		return;
+	}
+	if (strcmp(word, "T'<-(T-1)") == 0) {
+		LAST_OP |= aluDecT;
+		return;
+	}
+	if (strcmp(word, "T'<-[T]") == 0) {
+		LAST_OP |= aluFetch;
+		return;
+	}
+	if (strcmp(word, "T'<-(N<<T)") == 0) {
+		LAST_OP |= aluSHL;
+		return;
+	}
+	if (strcmp(word, "T'<-depth") == 0) {
+		LAST_OP |= aluDepth;
+		return;
+	}
+	if (strcmp(word, "T'<-(Nu<T)") == 0) {
+		LAST_OP |= aluNuLtT;
 		return;
 	}
 	if (strcmp(word, "N->[T]") == 0) {
@@ -324,7 +376,7 @@ void doDisassemble(bool toFile) {
 			printf("\nUnable to create listing file '%s'.", fn);
 			return;
 		}
-		fprintf(fp, "; HERE: %04X\n", HERE);
+		fprintf(fp, "; HERE: 0x%04X (%d)\n", HERE, HERE);
 		printf("\nWriting listing file '%s' ...", fn);
 	}
 
@@ -359,7 +411,7 @@ void saveImage() {
 	printf("\nWriting image to %s ...", fn);
 	FILE *fp = fopen(fn, "wb");
 	if (fp) {
-		fwrite(the_memory, 1, memory_size, fp);
+		fwrite(the_memory, 1, MEM_SZ, fp);
 		fclose(fp);
 		printf(" done");
 	} else {
@@ -367,7 +419,6 @@ void saveImage() {
 	}
 }
 
-// ---------------------------------------------------------------------
 // ---------------------------------------------------------------------
 // ---------------------------------------------------------------------
 // ---------------------------------------------------------------------
@@ -398,12 +449,6 @@ int main (int argc, char **argv)
 		char *cp = argv[i];
 		if (*cp == '-') { parse_arg(++cp); }
 	}
-
-	// disIR(MAKE_LIT(66), NULL);
-	// disIR(MAKE_JMP(67), NULL);
-	// disIR(MAKE_JMPZ(68), NULL);
-	// disIR(MAKE_CALL(69), NULL);
-	// disIR(0x7FFF, NULL);
 
 	j1_init();
 	COMMA(MAKE_JMP(0));

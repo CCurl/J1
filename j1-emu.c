@@ -14,7 +14,6 @@ int RSP = 0;
 
 CELL PC;
 
-const WORD memory_size = MEM_SZ;
 int running = 0;
 long cycle;
 
@@ -31,38 +30,38 @@ void j1_init()
 WORD getTprime(WORD OP) {
 	int op = (OP & 0x0F00) >> 8;
 	switch (OP) {
-		case 0: // #define tPrime_T 0x00
+		case tpTgetsT:
 			return T;
-		case 1: // #define tPrime_N 0x01
+		case tpTgetsN:
 			return N;
-		case 2: // #define tPrime_ADD 0x02
+		case tpTplusN:
 			return (T + N);
-		case 3: // #define tPrime_AND 0x03
-			return (T & N); // AND
-		case 4: // #define tPrime_OR 0x04
-			return (T | N); // OR
-		case 5: // #define tPrime_XOR 0x05
-			return (T ^ N); // XOR
-		case 6: // #define tPrime_NOT 0x06
-			return (~T); // NOT (aka - INVERT)
-		case 7: // #define tPrime_EQ 0x07
+		case tpTandN:
+			return (T & N);
+		case tpTorN:
+			return (T | N);
+		case tpTxorN:
+			return (T ^ N);
+		case tpNotT:
+			return (~T);
+		case tpTeqN:
 			return (N == T) ? 1 : 0;
-		case 8: // #define tPrime_LT 0x08
+		case tpTltN:
 			return (N < T) ? 1 : 0;
-		case 9: // #define tPrime_SHR 0x09
+		case tpSHR:
 			return (N >> T);
-		case 10: // #define tPrime_DEC 0x0A
+		case tpDecT:
 			return (T-1);
-		case 11: // #define tPrime_R 0x0B
+		case tpTgetsR:
 			return R;
-		case 12: // #define tPrime_FETCH 0x0C
+		case tpFetch:
 			return the_memory[T];
-		case 13: // #define tPrime_SHL 0x0D
+		case tpSHL:
 			return (N << T);
-		case 14: // #define tPrime_DEPTH 0x0E
+		case tpDepth:
 			return DSP;
-		case 15: // #define tPrime_NuT 0x0F
-			return 0; // what is (Nu<T) ?
+		case tpNuLtT:         // what is (Nu<T) ?
+			return 0;
 	}
 	return 0;
 }
@@ -188,7 +187,7 @@ void disALU(WORD IR, char *output) {
 	if (aluOp == aluFetch)  { strcat(output, " T'<-[T]"); }
 	if (aluOp == aluSHL)    { strcat(output, " T'<-(N<<T)"); }
 	if (aluOp == aluDepth)  { strcat(output, " T'<-Depth"); }
-	if (aluOp == alu15)     { strcat(output, " T'<-(Nu<T)"); }
+	if (aluOp == aluNuLtT)  { strcat(output, " T'<-(Nu<T)"); }
 
 	if (IR & bitRtoPC)   { strcat(output, "   R->PC"); }
 	if (IR & bitStore)   { strcat(output, "   N->[T]"); }
@@ -196,7 +195,7 @@ void disALU(WORD IR, char *output) {
 	if (IR & bitDecRSP)  { strcat(output, "   --RSP"); }
 	if (IR & bitTtoR)    { strcat(output, "   T->R"); }
 	if (IR & bitTtoN)    { strcat(output, "   T->N"); }
-	// if (IR & bitUnused)  { strcat(output, "   (unused)"); }
+	if (IR & bitUnused)  { strcat(output, "   (unused)"); }
 	if (IR & bitDecDSP)  { strcat(output, "   --DSP"); }
 	if (IR & bitIncDSP)  { strcat(output, "   ++DSP"); }
 }
