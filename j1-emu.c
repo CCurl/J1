@@ -27,9 +27,9 @@ void j1_init()
 }
 
 // ---------------------------------------------------------------------
-WORD getTprime(WORD OP) {
-	int op = (OP & 0x0F00) >> 8;
-	switch (OP) {
+WORD getTprime(WORD IR) {
+	int op = (IR & 0x0F00) >> 8;
+	switch (op) {
 		case tpTgetsT:
 			return T;
 		case tpTgetsN:
@@ -79,7 +79,7 @@ void executeALU(WORD IR) {
 	// DSP += 1            [03:02] xxxx xxxx xxxx x1xx (IR >>  2) & 0x0001 == 0x0001
 	// RSP -= 1            [01:00] xxxx xxxx xxxx xx1x (IR & 0x0003) == 0x0003
 	// RSP += 1            [01:00] xxxx xxxx xxxx xxx1 (IR & 0x0003) == 0x0001
-	WORD tPrime = getTprime((IR & 0x0F00) >> 8);
+	WORD tPrime = getTprime(IR);
 	// disIR(IR, NULL);
 	
 	if (IR & bitRtoPC) { PC = R; }
