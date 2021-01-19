@@ -413,15 +413,22 @@ void parse_arg(char *arg)
 	if (*arg == 'f') strcpy(base_fn, arg+2);
 	if (*arg == 't') save_output = false;
 	if (*arg == 'd') debug_flag  = true;
+	if (*arg == 'c') {
+		char buf[24];
+		strcpy(buf, arg+2);
+		maxCycles = atol(buf);
+	}
 
 	if (*arg == '?') {
 		writePort_StringF("usage: j1 [options]\n");
-		writePort_StringF("\t -f:baseFn  (default: 'j1')\n");
-		writePort_StringF("\t -t (temp:  default: false)\n");
-		writePort_StringF("\t -d (debug: default: false)\n");
+		writePort_StringF("\t -f:baseFn     (default: 'j1')\n");
+		writePort_StringF("\t -t     (temp:  default: false)\n");
+		writePort_StringF("\t -d     (debug: default: false)\n");
+		writePort_StringF("\t -c:maxCycles  (default: 0)\n");
 		writePort_StringF("\nNotes ...");
 		writePort_StringF("\n\n    -f:baseFn defines the base filename for the files in the working set.");
 		writePort_StringF(  "\n    -t identfies that J1 should not write a .LST or .BIN file");
+		writePort_StringF(  "\n    -c limits the number of CPU cycles, 0 => unlimited");
 
 		exit(0);
 	}
