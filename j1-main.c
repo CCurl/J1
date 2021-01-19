@@ -201,106 +201,106 @@ void parseWord(char *word) {
 		words[numWords-1].len = (HERE - words[numWords-1].xt);
 		return;
 	}
-	if (strcmp(word, "ALU") == 0) {
-		if (debug_flag) writePort_StringF(" ALU->%d", HERE);
-		op = opALU;
+	if (strcmp(word, "alu") == 0) {
+		if (debug_flag) writePort_StringF(" putting ALU %04X to [%d]", HERE);
+		op = MAKE_ALU(pop());
 		COMMA(op);
 		return;
 	}
-	if (strcmp(word, "T'<-T") == 0) {
-		LAST_OP |= aluTgetsT;
+	if (strcmp(word, "T") == 0) {
+		push(aluTgetsT);
 		return;
 	}
-	if (strcmp(word, "T'<-N") == 0) {
-		LAST_OP |= aluTgetsN;
+	if (strcmp(word, "N") == 0) {
+		push(aluTgetsN);
 		return;
 	}
-	if (strcmp(word, "T'<-R") == 0) {
-		LAST_OP |= aluTgetsR;
+	if (strcmp(word, "rT") == 0) {
+		push(aluTgetsR);
 		return;
 	}
-	if (strcmp(word, "T'<-(T+N)") == 0) {
-		LAST_OP |= aluTplusN;
+	if (strcmp(word, "T+N") == 0) {
+		push(aluTplusN);
 		return;
 	}
-	if (strcmp(word, "T'<-(TandN)") == 0) {
-		LAST_OP |= aluTandN;
+	if (strcmp(word, "T&N") == 0) {
+		push(aluTandN);
 		return;
 	}
-	if (strcmp(word, "T'<-(TorN)") == 0) {
-		LAST_OP |= aluTorN;
+	if (strcmp(word, "T|N") == 0) {
+		push(aluTorN);
 		return;
 	}
-	if (strcmp(word, "T'<-(TxorN)") == 0) {
-		LAST_OP |= aluTxorN;
+	if (strcmp(word, "T^N") == 0) {
+		push(aluTxorN);
 		return;
 	}
-	if (strcmp(word, "T'<-(notT)") == 0) {
-		LAST_OP |= aluNotT;
+	if (strcmp(word, "~T") == 0) {
+		push(aluNotT);
 		return;
 	}
-	if (strcmp(word, "T'<-(T=N)") == 0) {
-		LAST_OP |= aluTeqN;
+	if (strcmp(word, "N==T") == 0) {
+		push(aluTeqN);
 		return;
 	}
-	if (strcmp(word, "T'<-(T<N)") == 0) {
-		LAST_OP |= aluTltN;
+	if (strcmp(word, "N<T") == 0) {
+		push(aluTltN);
 		return;
 	}
-	if (strcmp(word, "T'<-(N>>T)") == 0) {
-		LAST_OP |= aluSHR;
+	if (strcmp(word, "N>>T") == 0) {
+		push(aluSHR);
 		return;
 	}
-	if (strcmp(word, "T'<-(T-1)") == 0) {
-		LAST_OP |= aluDecT;
+	if (strcmp(word, "N<<T") == 0) {
+		push(aluSHL);
 		return;
 	}
-	if (strcmp(word, "T'<-[T]") == 0) {
-		LAST_OP |= aluFetch;
+	if (strcmp(word, "T-1") == 0) {
+		push(aluDecT);
 		return;
 	}
-	if (strcmp(word, "T'<-(N<<T)") == 0) {
-		LAST_OP |= aluSHL;
+	if (strcmp(word, "[T]") == 0) {
+		push(aluFetch);
 		return;
 	}
-	if (strcmp(word, "T'<-depth") == 0) {
-		LAST_OP |= aluDepth;
+	if (strcmp(word, "dsp") == 0) {
+		push(aluDepth);
 		return;
 	}
-	if (strcmp(word, "T'<-(Nu<T)") == 0) {
-		LAST_OP |= aluNuLtT;
+	if (strcmp(word, "Nu<T") == 0) {
+		push(aluNuLtT);
 		return;
 	}
 	if (strcmp(word, "N->[T]") == 0) {
-		LAST_OP |= bitStore;
+		T |= bitStore;
 		return;
 	}
 	if (strcmp(word, "R->PC") == 0) {
-		LAST_OP |= bitRtoPC;
+		T |= bitRtoPC;
 		return;
 	}
 	if (strcmp(word, "T->N") == 0) {
-		LAST_OP |= bitTtoN;
+		T |= bitTtoN;
 		return;
 	}
 	if (strcmp(word, "T->R") == 0) {
-		LAST_OP |= bitTtoR;
+		T |= bitTtoR;
 		return;
 	}
-	if (strcmp(word, "++RSP") == 0) {
-		LAST_OP |= bitIncRSP;
+	if (strcmp(word, "r+1") == 0) {
+		T |= bitIncRSP;
 		return;
 	}
-	if (strcmp(word, "--RSP") == 0) {
-		LAST_OP |= bitDecRSP;
+	if (strcmp(word, "r-1") == 0) {
+		T |= bitDecRSP;
 		return;
 	}
-	if (strcmp(word, "++DSP") == 0) {
-		LAST_OP |= bitIncDSP;
+	if (strcmp(word, "d+1") == 0) {
+		T |= bitIncDSP;
 		return;
 	}
-	if (strcmp(word, "--DSP") == 0) {
-		LAST_OP |= bitDecDSP;
+	if (strcmp(word, "d-1") == 0) {
+		T |= bitDecDSP;
 		return;
 	}
 	if (strcmp(word, ">r") == 0) {

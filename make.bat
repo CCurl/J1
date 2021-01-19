@@ -11,7 +11,8 @@ set c-files=%c-files% j1-main.c io-ports.c
 echo making %output% ...
 echo gcc -o %output% %c-files%
 gcc -o %output% %c-files%
-if "--%2%--" == "--1--" j1
+if "--%2%--" == "----" goto done
+j1 -f:j1 -c:1000
 goto done
 
 :unknown

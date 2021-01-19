@@ -3,9 +3,9 @@
 #define STK_SZ 16
 #define MEM_SZ 8192
 
+#define CELL unsigned short
 #define CELL_SZ 2
 #define WORD unsigned short
-#define CELL WORD
 #define byte unsigned char  
 
 #define bool int
@@ -95,6 +95,8 @@ extern CELL rstk[];
 extern int RSP;
 
 void j1_init();
+void push(CELL val);
+CELL pop();
 void executeALU(WORD IR);
 void j1_emu(CELL start, long maxCycles);
 void dumpStack(int sp, WORD *stk);

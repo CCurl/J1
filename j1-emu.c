@@ -18,6 +18,16 @@ int running = 0;
 long cycle;
 void dumpState(bool);
 
+inline void push(CELL val) {
+	if (++DSP > STK_SZ) { DSP = STK_SZ; }
+	dstk[DSP] = val;
+}
+
+inline CELL pop() {
+	if (--DSP < 1) { DSP = 0; }
+	return dstk[DSP+1];
+}
+
 // ---------------------------------------------------------------------
 void j1_init()
 {
@@ -91,8 +101,6 @@ void executeALU(WORD IR) {
 	if (IR & bitStore) {
 		if ((0 <= T) && (T < MEM_SZ)) the_memory[T] = N;
 		else writePort(T, N);
-		DSP--;
-		tPrime = N;
 	}
 	if (IR & bitTtoN) { N = T; }
 
