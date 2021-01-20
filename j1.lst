@@ -1,4 +1,4 @@
-; HERE: 0x0091 (145)
+; HERE: 0x0099 (153)
 ;  0: XT: 0000, Len:  1, Flags: 08, MacroVal: 6000, Name: noop
 ;  1: XT: 0000, Len:  1, Flags: 08, MacroVal: 6208, Name: +
 ;  2: XT: 0000, Len:  1, Flags: 08, MacroVal: 6508, Name: xor
@@ -33,27 +33,29 @@
 ; 31: XT: 0000, Len:  1, Flags: 08, MacroVal: 6008, Name: down1
 ; 32: XT: 0000, Len:  1, Flags: 08, MacroVal: 6100, Name: copy
 ; 33: XT: 0016, Len:  2, Flags: 00, MacroVal: 00, Name: emit
-; 34: XT: 0018, Len:  4, Flags: 00, MacroVal: 00, Name: OK
-; 35: XT: 001C, Len:  2, Flags: 00, MacroVal: 00, Name: .
-; 36: XT: 001E, Len:  2, Flags: 00, MacroVal: 00, Name: emit
-; 37: XT: 0020, Len:  4, Flags: 00, MacroVal: 00, Name: cr
-; 38: XT: 0024, Len:  2, Flags: 00, MacroVal: 00, Name: bl
-; 39: XT: 0026, Len:  3, Flags: 00, MacroVal: 00, Name: t
-; 40: XT: 0029, Len:  6, Flags: 00, MacroVal: 00, Name: dup-test
-; 41: XT: 002F, Len:  8, Flags: 00, MacroVal: 00, Name: nip-test
-; 42: XT: 0037, Len:  7, Flags: 00, MacroVal: 00, Name: swap-test
-; 43: XT: 003E, Len:  8, Flags: 00, MacroVal: 00, Name: drop-test
-; 44: XT: 0046, Len:  8, Flags: 00, MacroVal: 00, Name: over-test
-; 45: XT: 004E, Len:  4, Flags: 00, MacroVal: 00, Name: 0000-test
-; 46: XT: 0052, Len:  4, Flags: 00, MacroVal: 00, Name: dot-test
-; 47: XT: 0056, Len: 10, Flags: 00, MacroVal: 00, Name: r-test
-; 48: XT: 0060, Len: 10, Flags: 00, MacroVal: 00, Name: r@-test
-; 49: XT: 006A, Len: 10, Flags: 00, MacroVal: 00, Name: add-test
-; 50: XT: 0074, Len: 10, Flags: 00, MacroVal: 00, Name: depth-test
-; 51: XT: 007E, Len:  5, Flags: 00, MacroVal: 00, Name: 1--test
-; 52: XT: 0083, Len: 14, Flags: 00, MacroVal: 00, Name: main
+; 34: XT: 0018, Len:  2, Flags: 00, MacroVal: 00, Name: .
+; 35: XT: 001A, Len:  4, Flags: 00, MacroVal: 00, Name: cr
+; 36: XT: 001E, Len:  2, Flags: 00, MacroVal: 00, Name: bl
+; 37: XT: 0020, Len:  3, Flags: 00, MacroVal: 00, Name: t
+; 38: XT: 0023, Len:  6, Flags: 00, MacroVal: 00, Name: test-dup
+; 39: XT: 0029, Len:  8, Flags: 00, MacroVal: 00, Name: test-nip
+; 40: XT: 0031, Len:  7, Flags: 00, MacroVal: 00, Name: test-swap
+; 41: XT: 0038, Len:  8, Flags: 00, MacroVal: 00, Name: test-drop
+; 42: XT: 0040, Len:  8, Flags: 00, MacroVal: 00, Name: test-over
+; 43: XT: 0048, Len:  4, Flags: 00, MacroVal: 00, Name: test-0000
+; 44: XT: 004C, Len:  4, Flags: 00, MacroVal: 00, Name: test-dot
+; 45: XT: 0050, Len: 10, Flags: 00, MacroVal: 00, Name: test->r
+; 46: XT: 005A, Len: 10, Flags: 00, MacroVal: 00, Name: test-r@
+; 47: XT: 0064, Len: 10, Flags: 00, MacroVal: 00, Name: test-add
+; 48: XT: 006E, Len: 10, Flags: 00, MacroVal: 00, Name: test-depth
+; 49: XT: 0078, Len:  5, Flags: 00, MacroVal: 00, Name: test-1-
+; 50: XT: 007D, Len:  4, Flags: 00, MacroVal: 00, Name: OK
+; 51: XT: 0081, Len:  1, Flags: 00, MacroVal: 00, Name: bench
+; 52: XT: 0082, Len:  1, Flags: 00, MacroVal: 00, Name: mbench
+; 53: XT: 0083, Len:  2, Flags: 00, MacroVal: 00, Name: do-bench
+; 54: XT: 0085, Len: 20, Flags: 00, MacroVal: 00, Name: main
 
-0000: 0083    JMP      131     # (0x0083)
+0000: 0085    JMP      133     # (0x0085)
 0001: 6028    ALU      40      # (0x0028)
     T   N->[T]   d-1
 0002: 710A    ALU      4362    # (0x110A)
@@ -98,139 +100,149 @@
     T   R->PC   r-1
 0016: C001    LIT      16385   # (0x4001)
 0017: 0001    JMP      1       # (0x0001)
-0018: 804F    LIT      79      # (0x004F)
-0019: 4016    CALL     22      # (0x0016)
-001A: 804B    LIT      75      # (0x004B)
-001B: 0016    JMP      22      # (0x0016)
-001C: C002    LIT      16386   # (0x4002)
-001D: 0001    JMP      1       # (0x0001)
-001E: C001    LIT      16385   # (0x4001)
-001F: 0001    JMP      1       # (0x0001)
-0020: 800D    LIT      13      # (0x000D)
-0021: 401E    CALL     30      # (0x001E)
-0022: 800A    LIT      10      # (0x000A)
-0023: 001E    JMP      30      # (0x001E)
-0024: 8020    LIT      32      # (0x0020)
-0025: 001E    JMP      30      # (0x001E)
-0026: 4020    CALL     32      # (0x0020)
-0027: 401C    CALL     28      # (0x001C)
-0028: 0024    JMP      36      # (0x0024)
-0029: 8001    LIT      1       # (0x0001)
-002A: 4026    CALL     38      # (0x0026)
-002B: 8024    LIT      36      # (0x0024)
-002C: 6084    ALU      132     # (0x0084)
+0018: C002    LIT      16386   # (0x4002)
+0019: 0001    JMP      1       # (0x0001)
+001A: 800D    LIT      13      # (0x000D)
+001B: 4016    CALL     22      # (0x0016)
+001C: 800A    LIT      10      # (0x000A)
+001D: 0016    JMP      22      # (0x0016)
+001E: 8020    LIT      32      # (0x0020)
+001F: 0016    JMP      22      # (0x0016)
+0020: 401A    CALL     26      # (0x001A)
+0021: 4018    CALL     24      # (0x0018)
+0022: 001E    JMP      30      # (0x001E)
+0023: 8001    LIT      1       # (0x0001)
+0024: 4020    CALL     32      # (0x0020)
+0025: 8024    LIT      36      # (0x0024)
+0026: 6084    ALU      132     # (0x0084)
     T   T->N   d+1
-002D: 401C    CALL     28      # (0x001C)
-002E: 001C    JMP      28      # (0x001C)
-002F: 8002    LIT      2       # (0x0002)
-0030: 4026    CALL     38      # (0x0026)
-0031: 800B    LIT      11      # (0x000B)
-0032: 8016    LIT      22      # (0x0016)
-0033: 8022    LIT      34      # (0x0022)
-0034: 6008    ALU      8       # (0x0008)
+0027: 4018    CALL     24      # (0x0018)
+0028: 0018    JMP      24      # (0x0018)
+0029: 8002    LIT      2       # (0x0002)
+002A: 4020    CALL     32      # (0x0020)
+002B: 800B    LIT      11      # (0x000B)
+002C: 8016    LIT      22      # (0x0016)
+002D: 8022    LIT      34      # (0x0022)
+002E: 6008    ALU      8       # (0x0008)
     T   d-1
-0035: 401C    CALL     28      # (0x001C)
-0036: 001C    JMP      28      # (0x001C)
-0037: 8003    LIT      3       # (0x0003)
-0038: 4026    CALL     38      # (0x0026)
-0039: 800B    LIT      11      # (0x000B)
-003A: 8016    LIT      22      # (0x0016)
-003B: 6180    ALU      384     # (0x0180)
+002F: 4018    CALL     24      # (0x0018)
+0030: 0018    JMP      24      # (0x0018)
+0031: 8003    LIT      3       # (0x0003)
+0032: 4020    CALL     32      # (0x0020)
+0033: 800B    LIT      11      # (0x000B)
+0034: 8016    LIT      22      # (0x0016)
+0035: 6180    ALU      384     # (0x0180)
     N   T->N
-003C: 401C    CALL     28      # (0x001C)
-003D: 001C    JMP      28      # (0x001C)
-003E: 8004    LIT      4       # (0x0004)
-003F: 4026    CALL     38      # (0x0026)
-0040: 800B    LIT      11      # (0x000B)
-0041: 8016    LIT      22      # (0x0016)
-0042: 8023    LIT      35      # (0x0023)
-0043: 6108    ALU      264     # (0x0108)
+0036: 4018    CALL     24      # (0x0018)
+0037: 0018    JMP      24      # (0x0018)
+0038: 8004    LIT      4       # (0x0004)
+0039: 4020    CALL     32      # (0x0020)
+003A: 800B    LIT      11      # (0x000B)
+003B: 8016    LIT      22      # (0x0016)
+003C: 8023    LIT      35      # (0x0023)
+003D: 6108    ALU      264     # (0x0108)
     N   d-1
-0044: 401C    CALL     28      # (0x001C)
-0045: 001C    JMP      28      # (0x001C)
-0046: 8005    LIT      5       # (0x0005)
-0047: 4026    CALL     38      # (0x0026)
-0048: 8053    LIT      83      # (0x0053)
-0049: 8013    LIT      19      # (0x0013)
-004A: 6184    ALU      388     # (0x0184)
+003E: 4018    CALL     24      # (0x0018)
+003F: 0018    JMP      24      # (0x0018)
+0040: 8005    LIT      5       # (0x0005)
+0041: 4020    CALL     32      # (0x0020)
+0042: 8053    LIT      83      # (0x0053)
+0043: 8013    LIT      19      # (0x0013)
+0044: 6184    ALU      388     # (0x0184)
     N   T->N   d+1
-004B: 401C    CALL     28      # (0x001C)
-004C: 401C    CALL     28      # (0x001C)
-004D: 001C    JMP      28      # (0x001C)
-004E: 8006    LIT      6       # (0x0006)
-004F: 4026    CALL     38      # (0x0026)
-0050: 8000    LIT      0       # (0x0000)
-0051: 001C    JMP      28      # (0x001C)
-0052: 8007    LIT      7       # (0x0007)
-0053: 4026    CALL     38      # (0x0026)
-0054: B039    LIT      12345   # (0x3039)
-0055: 001C    JMP      28      # (0x001C)
-0056: 8008    LIT      8       # (0x0008)
-0057: 4026    CALL     38      # (0x0026)
-0058: 8047    LIT      71      # (0x0047)
-0059: 807B    LIT      123     # (0x007B)
-005A: 6149    ALU      329     # (0x0149)
+0045: 4018    CALL     24      # (0x0018)
+0046: 4018    CALL     24      # (0x0018)
+0047: 0018    JMP      24      # (0x0018)
+0048: 8006    LIT      6       # (0x0006)
+0049: 4020    CALL     32      # (0x0020)
+004A: 8000    LIT      0       # (0x0000)
+004B: 0018    JMP      24      # (0x0018)
+004C: 8007    LIT      7       # (0x0007)
+004D: 4020    CALL     32      # (0x0020)
+004E: B039    LIT      12345   # (0x3039)
+004F: 0018    JMP      24      # (0x0018)
+0050: 8008    LIT      8       # (0x0008)
+0051: 4020    CALL     32      # (0x0020)
+0052: 8047    LIT      71      # (0x0047)
+0053: 807B    LIT      123     # (0x007B)
+0054: 6149    ALU      329     # (0x0149)
     N   r+1   T->R   d-1
-005B: 401C    CALL     28      # (0x001C)
-005C: 828E    LIT      654     # (0x028E)
-005D: 401C    CALL     28      # (0x001C)
-005E: 6B06    ALU      2822    # (0x0B06)
+0055: 4018    CALL     24      # (0x0018)
+0056: 828E    LIT      654     # (0x028E)
+0057: 4018    CALL     24      # (0x0018)
+0058: 6B06    ALU      2822    # (0x0B06)
     R   r-1   d+1
-005F: 001C    JMP      28      # (0x001C)
-0060: 8009    LIT      9       # (0x0009)
-0061: 4026    CALL     38      # (0x0026)
-0062: 8051    LIT      81      # (0x0051)
-0063: 6149    ALU      329     # (0x0149)
+0059: 0018    JMP      24      # (0x0018)
+005A: 8009    LIT      9       # (0x0009)
+005B: 4020    CALL     32      # (0x0020)
+005C: 8051    LIT      81      # (0x0051)
+005D: 6149    ALU      329     # (0x0149)
     N   r+1   T->R   d-1
-0064: 80EA    LIT      234     # (0x00EA)
-0065: 401C    CALL     28      # (0x001C)
-0066: 6B04    ALU      2820    # (0x0B04)
+005E: 80EA    LIT      234     # (0x00EA)
+005F: 4018    CALL     24      # (0x0018)
+0060: 6B04    ALU      2820    # (0x0B04)
     R   d+1
-0067: 401C    CALL     28      # (0x001C)
-0068: 6B06    ALU      2822    # (0x0B06)
+0061: 4018    CALL     24      # (0x0018)
+0062: 6B06    ALU      2822    # (0x0B06)
     R   r-1   d+1
-0069: 001C    JMP      28      # (0x001C)
-006A: 800A    LIT      10      # (0x000A)
-006B: 4026    CALL     38      # (0x0026)
-006C: 8001    LIT      1       # (0x0001)
-006D: 8002    LIT      2       # (0x0002)
-006E: 8003    LIT      3       # (0x0003)
-006F: 8004    LIT      4       # (0x0004)
-0070: 6208    ALU      520     # (0x0208)
+0063: 0018    JMP      24      # (0x0018)
+0064: 800A    LIT      10      # (0x000A)
+0065: 4020    CALL     32      # (0x0020)
+0066: 8001    LIT      1       # (0x0001)
+0067: 8002    LIT      2       # (0x0002)
+0068: 8003    LIT      3       # (0x0003)
+0069: 8004    LIT      4       # (0x0004)
+006A: 6208    ALU      520     # (0x0208)
     T+N   d-1
-0071: 6208    ALU      520     # (0x0208)
+006B: 6208    ALU      520     # (0x0208)
     T+N   d-1
-0072: 6208    ALU      520     # (0x0208)
+006C: 6208    ALU      520     # (0x0208)
     T+N   d-1
-0073: 001C    JMP      28      # (0x001C)
-0074: 800B    LIT      11      # (0x000B)
-0075: 4026    CALL     38      # (0x0026)
-0076: 8007    LIT      7       # (0x0007)
-0077: 8008    LIT      8       # (0x0008)
-0078: 8009    LIT      9       # (0x0009)
-0079: 6E84    ALU      3716    # (0x0E84)
+006D: 0018    JMP      24      # (0x0018)
+006E: 800B    LIT      11      # (0x000B)
+006F: 4020    CALL     32      # (0x0020)
+0070: 8007    LIT      7       # (0x0007)
+0071: 8008    LIT      8       # (0x0008)
+0072: 8009    LIT      9       # (0x0009)
+0073: 6E84    ALU      3716    # (0x0E84)
     dsp   T->N   d+1
-007A: 401C    CALL     28      # (0x001C)
-007B: 401C    CALL     28      # (0x001C)
-007C: 401C    CALL     28      # (0x001C)
-007D: 001C    JMP      28      # (0x001C)
-007E: 800C    LIT      12      # (0x000C)
-007F: 4026    CALL     38      # (0x0026)
-0080: 8D11    LIT      3345    # (0x0D11)
-0081: 6A00    ALU      2560    # (0x0A00)
+0074: 4018    CALL     24      # (0x0018)
+0075: 4018    CALL     24      # (0x0018)
+0076: 4018    CALL     24      # (0x0018)
+0077: 0018    JMP      24      # (0x0018)
+0078: 800C    LIT      12      # (0x000C)
+0079: 4020    CALL     32      # (0x0020)
+007A: 8D11    LIT      3345    # (0x0D11)
+007B: 6A00    ALU      2560    # (0x0A00)
     T-1
-0082: 001C    JMP      28      # (0x001C)
-0083: 4029    CALL     41      # (0x0029)
-0084: 402F    CALL     47      # (0x002F)
-0085: 4037    CALL     55      # (0x0037)
-0086: 403E    CALL     62      # (0x003E)
-0087: 4046    CALL     70      # (0x0046)
-0088: 404E    CALL     78      # (0x004E)
-0089: 4052    CALL     82      # (0x0052)
-008A: 4056    CALL     86      # (0x0056)
-008B: 4060    CALL     96      # (0x0060)
-008C: 406A    CALL     106     # (0x006A)
-008D: 4074    CALL     116     # (0x0074)
-008E: 407E    CALL     126     # (0x007E)
-008F: 4020    CALL     32      # (0x0020)
-0090: 0018    JMP      24      # (0x0018)
+007C: 0018    JMP      24      # (0x0018)
+007D: 804F    LIT      79      # (0x004F)
+007E: 4016    CALL     22      # (0x0016)
+007F: 804B    LIT      75      # (0x004B)
+0080: 0016    JMP      22      # (0x0016)
+0081: 710A    ALU      4362    # (0x110A)
+    N   R->PC   r-1   d-1
+0082: 710A    ALU      4362    # (0x110A)
+    N   R->PC   r-1   d-1
+0083: D759    LIT      22361   # (0x5759)
+0084: 0082    JMP      130     # (0x0082)
+0085: 4023    CALL     35      # (0x0023)
+0086: 4029    CALL     41      # (0x0029)
+0087: 4031    CALL     49      # (0x0031)
+0088: 4038    CALL     56      # (0x0038)
+0089: 4040    CALL     64      # (0x0040)
+008A: 4048    CALL     72      # (0x0048)
+008B: 404C    CALL     76      # (0x004C)
+008C: 4050    CALL     80      # (0x0050)
+008D: 405A    CALL     90      # (0x005A)
+008E: 4064    CALL     100     # (0x0064)
+008F: 406E    CALL     110     # (0x006E)
+0090: 4078    CALL     120     # (0x0078)
+0091: 401A    CALL     26      # (0x001A)
+0092: 8073    LIT      115     # (0x0073)
+0093: 4016    CALL     22      # (0x0016)
+0094: 4083    CALL     131     # (0x0083)
+0095: 8065    LIT      101     # (0x0065)
+0096: 4016    CALL     22      # (0x0016)
+0097: 401A    CALL     26      # (0x001A)
+0098: 007D    JMP      125     # (0x007D)

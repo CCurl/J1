@@ -14,9 +14,9 @@
 : drop      N                   d-1 alu ; MACRO
 : over      N     T->N          d+1 alu ; MACRO
 : nip       T                   d-1 alu ; MACRO
-// : >r        N     T->R      r+1 d-1 alu ; MACRO
-// : r>        rT    T->N      r-1 d+1 alu ; MACRO
-// : r@        rT    T->N          d+1 alu ; MACRO
+\ >r        N     T->R      r+1 d-1 alu ;
+\ r>        rT    T->N      r-1 d+1 alu ;
+\ r@        rT    T->N          d+1 alu ;
 : @         [T]                     alu ; MACRO
 : !         T     N->[T]        d-1 alu
             N                   d-1 alu ;
@@ -54,33 +54,37 @@
 : up1       T                   d+1 alu ; MACRO
 : down1     T                   d-1 alu ; MACRO
 : copy      N                       alu ; MACRO
+
+\ Input/output
 : emit $4001 ! ;
-: OK  'O' emit 'K' emit ;       // expect OK
-
-
+: .    $4002 ! ;
 
 // ****************************
 // TESTS
 // ****************************
 
-: . $4002 ! ;
-: emit $4001 ! ;
 : cr #13 emit #10 emit ; : bl $20 emit ; 
 : t cr . bl ;
-: dup-test     1 t 36 dup . . ;              // expect 36 36
-: nip-test     2 t 11 22 34 nip . . ;        // expect 34 11
-: swap-test    3 t 11 22 swap . . ;          // expect 11 22
-: drop-test    4 t 11 22 35 drop . . ;       // expect 22 11
-: over-test    5 t 83 19 over . . . ;        // expect 83 19 83
-: 0000-test    6 t 0 . ;                     // expect 0
-: dot-test     7 t 12345 . ;                 // expect 12345
-: r-test       8 t 71 123 >r . 654 . r> . ;  // expect 71 654 123
-: r@-test      9 t 81 >r 234 . r@ . r> . ;   // expect 234 81 81
-: add-test    10 t 1 2 3 4 + + + . ;         // expect 10
-: depth-test  11 t 7 8 9 depth . . . . ;     // expect 3 9 8 7
-: 1--test     12 t 3345 1- . ;               // expect 3344
-: main dup-test nip-test swap-test 
-    drop-test over-test 0000-test
-    dot-test r-test r@-test add-test
-    depth-test 1--test cr OK ;
-// : newMain depth-test ;
+: test-dup     1 t 36 dup . . ;              // expect 36 36
+: test-nip     2 t 11 22 34 nip . . ;        // expect 34 11
+: test-swap    3 t 11 22 swap . . ;          // expect 11 22
+: test-drop    4 t 11 22 35 drop . . ;       // expect 22 11
+: test-over    5 t 83 19 over . . . ;        // expect 83 19 83
+: test-0000    6 t 0 . ;                     // expect 0
+: test-dot     7 t 12345 . ;                 // expect 12345
+: test->r      8 t 71 123 >r . 654 . r> . ;  // expect 71 654 123
+: test-r@      9 t 81 >r 234 . r@ . r> . ;   // expect 234 81 81
+: test-add    10 t 1 2 3 4 + + + . ;         // expect 10
+: test-depth  11 t 7 8 9 depth . . . . ;     // expect 3 9 8 7
+: test-1-     12 t 3345 1- . ;               // expect 3344
+: OK 'O' emit 'K' emit ;
+: bench drop ;   //     begin 1-            dup while drop ;
+: mbench drop ;  // dup begin over bench 1- dup while drop ;
+: do-bench $5759 mbench ;
+: main     test-dup   test-nip    test-swap 
+           test-drop  test-over   test-0000
+           test-dot   test->r     test-r@
+           test-add   test-depth  test-1- 
+    cr 's' emit do-bench 'e' emit
+    cr OK ;
+// : newMain test-depth ;
