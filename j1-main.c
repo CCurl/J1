@@ -115,7 +115,7 @@ void defineWord(char *name) {
 	p->xt = HERE;
 	p->flags = 0;
 	p->len = 0;
-	if (debug_flag) writePort_StringF("\nDefined [%s] at #%d", name, numWords);
+	if (debug_flag) writePort_StringF("\nDefined (%d) [%s] at addr %02X", numWords-1, name, HERE);
 }
 
 // ---------------------------------------------------------------------
@@ -130,7 +130,7 @@ DICT_T *findWord(char *word) {
 
 // ---------------------------------------------------------------------
 void parseWord(char *word) {
-	if (debug_flag) writePort_StringF("\n[%s] (HERE=%d), LAST_OP=%04X", word, HERE, LAST_OP);
+	// if (debug_flag) writePort_StringF("\n[%s] (HERE=%d), LAST_OP=%04X", word, HERE, LAST_OP);
 	WORD num = 0;
 	WORD op = LAST_OP;
 	if (isNumber(word, &num)) {
@@ -154,7 +154,10 @@ void parseWord(char *word) {
 				COMMA(the_memory[a++]);
 			}
 			// Clear the R->PC and --RSP bits
-			LAST_OP &= 0xEFFD;
+			LAST_OP &= ~(bitRtoPC|bitDecRSP);
+		} else if (w->flags & 0x08) {
+			// MACRO
+			COMMA(w->macroVal);
 		} else {
 			op = MAKE_CALL(w->xt);
 			COMMA(op);
@@ -165,6 +168,21 @@ void parseWord(char *word) {
 		getWord(word);
 		defineWord(word);
 		STATE = 1;
+		return;
+	}
+	if (strcmp(word, "MACRO") == 0) {
+		DICT_T *w = &words[numWords-1];
+		if (w->len == 1) {
+			op = the_memory[--HERE]; 
+			the_memory[HERE] = 0; 
+			op &= ~(bitRtoPC|bitDecRSP);
+			w->xt = 0x0000;
+			w->flags = 0x08;
+			w->macroVal = op;
+			if (debug_flag) { writePort_StringF("MACRO: [%s], val=%02X", w->name, w->macroVal); }
+		} else {
+			writePort_StringF("\nWARN: [%s] length must be 1 for MACRO", w->name);
+		}
 		return;
 	}
 	if (strcmp(word, "INLINE") == 0) {
@@ -357,6 +375,20 @@ void doCompile(FILE *fp) {
 }
 
 // ---------------------------------------------------------------------
+int load(char *base) {
+	char fn[32];
+	sprintf(fn, "%s.src", base_fn);
+	FILE *fp = fopen(fn, "rt");
+	if (fp) {
+		doCompile(fp);
+		fclose(fp);
+	} else {
+		writePort_StringF("ERROR: unable to open '%s'\n", fn);
+		return 1;
+	}
+}
+
+// ---------------------------------------------------------------------
 void doDisassemble(bool toFile) {
 	FILE *fp = NULL;
 	if (toFile) {
@@ -373,9 +405,9 @@ void doDisassemble(bool toFile) {
 	char buf[256];
 	for (int i = 0; i < numWords; i++) {
 		DICT_T *p = &words[i];
-		sprintf(buf, "; %2d: XT: %04X, Len: %2d, Flags: %02X, Name: %s\n", i,
-			p->xt, p->len, p->flags, p->name);
-		fp ? fprintf(fp, "%s", buf) : writePort_String(buf);
+		sprintf(buf, "; %2d: XT: %04X, Len: %2d, Flags: %02X, MacroVal: %02X, Name: %s\n", i,
+			p->xt, p->len, p->flags, p->macroVal, p->name);
+		(fp) ? fprintf(fp, "%s", buf) : writePort_String(buf);
 	}
 
 	for (int i = 0; i < HERE; i++) {
@@ -448,16 +480,7 @@ int main (int argc, char **argv)
 	j1_init();
 	COMMA(MAKE_JMP(0));
 
-	char fn[32];
-	sprintf(fn, "%s.src", base_fn);
-	FILE *fp = fopen(fn, "rt");
-	if (fp) {
-		doCompile(fp);
-		fclose(fp);
-	} else {
-		writePort_StringF("ERROR: unable to open '%s'", fn);
-		return 1;
-	}
+	load(base_fn);
 
 	if (numWords) { the_memory[0] = MAKE_JMP(words[numWords-1].xt); }
 	if (save_output) { doDisassemble(true); }

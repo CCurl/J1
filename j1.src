@@ -1,29 +1,29 @@
 // ( Base words implemented in assembler        JCB 13:10 08/24/10)
 
-: noop      T                       alu ;
-: +         T+N                 d-1 alu ;
-: xor       T^N                 d-1 alu ;
-: and       T&N                 d-1 alu ;
-: or        T|N                 d-1 alu ;
-: invert    ~T                      alu ;
-: =         N==T                d-1 alu ;
-: <         N<T                 d-1 alu ;
-: u<        Nu<T                d-1 alu ;
-: swap      N     T->N              alu ;
-: dup       T     T->N          d+1 alu ;
-: drop      N                   d-1 alu ;
-: over      N     T->N          d+1 alu ;
-: nip       T                   d-1 alu ;
-: >r        N     T->R      r+1 d-1 alu ; INLINE
-: r>        rT    T->N      r-1 d+1 alu ; INLINE
-: r@        rT    T->N          d+1 alu ; INLINE
-: @         [T]                     alu ;
+: noop      T                       alu ; MACRO
+: +         T+N                 d-1 alu ; MACRO
+: xor       T^N                 d-1 alu ; MACRO
+: and       T&N                 d-1 alu ; MACRO
+: or        T|N                 d-1 alu ; MACRO
+: invert    ~T                      alu ; MACRO
+: =         N==T                d-1 alu ; MACRO
+: <         N<T                 d-1 alu ; MACRO
+: u<        Nu<T                d-1 alu ; MACRO
+: swap      N     T->N              alu ; MACRO
+: dup       T     T->N          d+1 alu ; MACRO
+: drop      N                   d-1 alu ; MACRO
+: over      N     T->N          d+1 alu ; MACRO
+: nip       T                   d-1 alu ; MACRO
+// : >r        N     T->R      r+1 d-1 alu ; MACRO
+// : r>        rT    T->N      r-1 d+1 alu ; MACRO
+// : r@        rT    T->N          d+1 alu ; MACRO
+: @         [T]                     alu ; MACRO
 : !         T     N->[T]        d-1 alu
             N                   d-1 alu ;
-: depth     dsp   T->N          d+1 alu ;
-: lshift    N<<T                d-1 alu ;
-: rshift    N>>T                d-1 alu ;
-: 1-        T-1                     alu ;
+: depth     dsp   T->N          d+1 alu ; MACRO
+: lshift    N<<T                d-1 alu ; MACRO
+: rshift    N>>T                d-1 alu ; MACRO
+: 1-        T-1                     alu ; MACRO
 : 2r>       rT    T->N      r-1 d+1 alu
             rT    T->N      r-1 d+1 alu
             N     T->N              alu ;
@@ -43,17 +43,17 @@
 \ : exit      return ;
 
 \ Elided words
-: dup@      [T]   T->N          d+1 alu ;
+: dup@      [T]   T->N          d+1 alu ; MACRO
 : dup>r     T     T->R          r+1 alu ;
-: 2dupxor   T^N   T->N          d+1 alu ;
-: 2dup=     N==T  T->N          d+1 alu ;
-: !nip      T     N->[T]        d-1 alu ;
-: 2dup!     T     N->[T]            alu ;
+: 2dupxor   T^N   T->N          d+1 alu ; MACRO
+: 2dup=     N==T  T->N          d+1 alu ; MACRO
+: !nip      T     N->[T]        d-1 alu ; MACRO
+: 2dup!     T     N->[T]            alu ; MACRO
 
 \ Words used to implement pick
-: up1       T                   d+1 alu ;
-: down1     T                   d-1 alu ;
-: copy      N                       alu ;
+: up1       T                   d+1 alu ; MACRO
+: down1     T                   d-1 alu ; MACRO
+: copy      N                       alu ; MACRO
 : emit $4001 ! ;
 : OK  'O' emit 'K' emit ;       // expect OK
 

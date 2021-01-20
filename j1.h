@@ -85,6 +85,7 @@ typedef struct {
 	byte flags;
 	byte len;
 	WORD xt;
+	WORD macroVal;
 } DICT_T;
 
 // ---------------------------------------------------------------------
