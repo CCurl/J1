@@ -444,6 +444,7 @@ int main (int argc, char **argv)
 		if (*cp == '-') { parse_arg(++cp); }
 	}
 
+	setDebugMode(debug_flag);
 	j1_init();
 	COMMA(MAKE_JMP(0));
 
@@ -464,7 +465,6 @@ int main (int argc, char **argv)
 	j1_emu(0, maxCycles);
 
 	if (debug_flag) {
-		doDisassemble(false);
 		writePort_String("\ndata stack: ");
 		dumpStack(DSP, dstk);
 		writePort_String("\nreturn stack: ");

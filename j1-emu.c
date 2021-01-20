@@ -13,9 +13,9 @@ CELL rstk[STK_SZ+1];
 int RSP = 0;
 
 CELL PC;
-
 int running = 0;
 long cycle;
+bool debugOn = false;
 void dumpState(bool);
 
 inline void push(CELL val) {
@@ -38,7 +38,7 @@ void j1_init()
 }
 
 // ---------------------------------------------------------------------
-WORD getTprime(WORD IR) {
+WORD deriveNewT(WORD IR) {
 	int op = (IR & 0x0F00) >> 8;
 	switch (op) {
 		case tpTgetsT:
@@ -79,48 +79,45 @@ WORD getTprime(WORD IR) {
 
 // ---------------------------------------------------------------------
 void executeALU(WORD IR) {
-	// Lower 13 bits ...
-	// R->PC               [12:12] xxx1 xxxx xxxx xxxx (IR >> 12) & 0x0001
-	// T'                  [11:08] xxxx NNNN xxxx xxxx (IR >> 11) & 0x000F
-	// T->N                [07:07] xxxx xxxx 1xxx xxxx (IR >>  7) & 0x0001
-	// T->R                [06:06] xxxx xxxx x1xx xxxx (IR >>  6) & 0x0001
-	// STORE (N->[T])      [05:05] xxxx xxxx xx1x xxxx (IR >>  5) & 0x0001
-	// UNUSED              [04:04] xxxx xxxx xxx1 xxxx (IR >>  4) & 0x0010
-	// DSP -= 1            [03:02] xxxx xxxx xxxx 1xxx (IR >>  2) & 0x0003 == 0x0003
-	// DSP += 1            [03:02] xxxx xxxx xxxx x1xx (IR >>  2) & 0x0001 == 0x0001
-	// RSP -= 1            [01:00] xxxx xxxx xxxx xx1x (IR & 0x0003) == 0x0003
-	// RSP += 1            [01:00] xxxx xxxx xxxx xxx1 (IR & 0x0003) == 0x0001
-	WORD tPrime = getTprime(IR);
-	// disIR(IR, NULL);
-	
-	if (IR & bitRtoPC)  { PC = R; }
-	if (IR & bitIncRSP) { RSP++; }
-	if (IR & bitDecRSP) { RSP--; }
-	if (IR & bitTtoR)   { R = T; }
+	WORD currentT = T;
+	WORD currentN = N;
+	WORD currentR = R;
+	WORD newT = deriveNewT(IR);
 
-	if (IR & bitStore) {
-		if ((0 <= T) && (T < MEM_SZ)) the_memory[T] = N;
-		else writePort(T, N);
+	if (debugOn) {
+		dumpStack(DSP, dstk);
+		writePort_StringF(" newT=[%d] ", newT);
+		disIR(IR, NULL);
 	}
-	if (IR & bitTtoN) { N = T; }
+	
+	if (IR & bitIncRSP) { RSP += (RSP < STK_SZ) ? 1 : 0; }
+	if (IR & bitDecRSP) { RSP -= 1; }
+	if (IR & bitIncDSP) { DSP += (DSP < STK_SZ) ? 1 : 0; }
+	if (IR & bitDecDSP) { DSP -= (DSP > 0)      ? 1 : 0; }
 
-	if (IR & bitIncDSP) { DSP++; }
-	if (IR & bitDecDSP) { DSP--; }
-	if (DSP < 0)        { DSP = 0; }
-	if (DSP > STK_SZ)   { DSP = STK_SZ; }
+	if (IR & bitRtoPC)  { PC = currentR; }
+	if (IR & bitTtoR)   { R  = currentT; }
+	if (IR & bitTtoN)   { N  = currentT; }
+	if (IR & bitStore)  {
+		if ((0 <= currentT) && (currentT < MEM_SZ)) {
+			the_memory[currentT] = currentN;
+		}
+		else {
+			writePort(currentT, currentN);
+		}
+	}
 
-	T = tPrime;
+	T = newT;
 }
 
 // ---------------------------------------------------------------------
-void j1_emu(CELL start, long maxCycles)
+void j1_emu(WORD start, long maxCycles)
 {
 	cycle = 0;
-	running = 1;
 	PC = start;
-	while (running)
+	while (true)
 	{
-		// dumpState(false);
+		if (debugOn) { dumpState(false); }
         WORD IR = the_memory[PC++];
 
 		// The top 3 bits identify the class of operation ...
@@ -130,33 +127,36 @@ void j1_emu(CELL start, long maxCycles)
 		// 010x => CALL (010x xxxx xxxx xxxx) (IR & 0xE000) == 0x4000
 		// 011x => ALU  (011x xxxx xxxx xxxx) (IR & 0xE000) == 0x6000
 
-		if ((IR & opLIT) == opLIT) {                  // LITERAL
-			if (DSP < STK_SZ) { DSP++; }
-			T = (IR & 0x7FFF);
-			// printf(" - LIT %d", T);
-		} else if ((IR & INSTR_MASK) == opJMP) {      // JMP
+		if ((IR & opLIT) == opLIT) {
+			push(IR & 0x7FFF);
+			if (debugOn) { printf(" - LIT %d", T); }
+		} else if ((IR & INSTR_MASK) == opJMP) {
 			PC = IR & ADDR_MASK;
-			// printf(" - JMP %d", PC);
-		} else if ((IR & INSTR_MASK) == opJMPZ) {      // JMPZ (0BRANCH)
-			// printf(" - JMPZ %d", IR & ADDR_MASK);
+			if (debugOn) { printf(" - JMP %d", PC); }
+		} else if ((IR & INSTR_MASK) == opJMPZ) {
+			if (debugOn) { printf(" - JMPZ %d", IR & ADDR_MASK); }
 			PC = (T == 0) ? (IR & ADDR_MASK) : PC;
 			DSP--;
-		} else if ((IR & INSTR_MASK) == opCALL) {      // CALL
-			// printf(" - CALL %d", IR & ADDR_MASK);
+		} else if ((IR & INSTR_MASK) == opCALL) {
+			if (debugOn) { printf(" - CALL %d", IR & ADDR_MASK); }
 			RSP += (RSP < STK_SZ) ? 1 : 0;
 			R = PC;
 			PC = (IR & ADDR_MASK);
-		} else if ((IR & INSTR_MASK) == opALU) {      // ALU
-			// printf(" - ALU: ");
+		} else if ((IR & INSTR_MASK) == opALU) {
+			if (debugOn) { printf(" - ALU: "); }
 			executeALU(IR);
 		}
 
-		if (maxCycles && (++cycle >= maxCycles)) { running = false; }
+		if (maxCycles && (++cycle >= maxCycles)) { return; }
 		if (RSP < 0) {
 			RSP = 0;
-			running = false;
+			return;
 		}
 	}
+}
+
+void setDebugMode(bool isOn) {
+	debugOn = isOn;
 }
 
 void dumpState(bool lastPC) {
@@ -177,52 +177,53 @@ void disALU(WORD IR, char *output) {
 	strcat(output, "\n    ");
 
 	WORD aluOp = IR & 0x0F00;
-	if (aluOp == aluTgetsT) { strcat(output, " T'<-T"); }
-	if (aluOp == aluTgetsN) { strcat(output, " T'<-N"); }
-	if (aluOp == aluTgetsR) { strcat(output, " T'<-R"); }
-	if (aluOp == aluTplusN) { strcat(output, " T'<-(T+N)"); }
-	if (aluOp == aluTandN)  { strcat(output, " T'<-(TandN)"); }
-	if (aluOp == aluTorN)   { strcat(output, " T'<-(TorN)"); }
-	if (aluOp == aluTxorN)  { strcat(output, " T'<-(TxorN)"); }
-	if (aluOp == aluNotT)   { strcat(output, " T'<-(notT)"); }
-	if (aluOp == aluTeqN)   { strcat(output, " T'<-(T==N)"); }
-	if (aluOp == aluTltN)   { strcat(output, " T'<-(T<N)"); }
-	if (aluOp == aluSHR)    { strcat(output, " T'<-(N>>T)"); }
-	if (aluOp == aluDecT)   { strcat(output, " T'<-(T-1)"); }
-	if (aluOp == aluFetch)  { strcat(output, " T'<-[T]"); }
-	if (aluOp == aluSHL)    { strcat(output, " T'<-(N<<T)"); }
-	if (aluOp == aluDepth)  { strcat(output, " T'<-Depth"); }
-	if (aluOp == aluNuLtT)  { strcat(output, " T'<-(Nu<T)"); }
+	if (aluOp == aluTgetsT) { strcat(output, "T"); }
+	if (aluOp == aluTgetsN) { strcat(output, "N"); }
+	if (aluOp == aluTgetsR) { strcat(output, "R"); }
+	if (aluOp == aluTplusN) { strcat(output, "T+N"); }
+	if (aluOp == aluTandN)  { strcat(output, "T&N"); }
+	if (aluOp == aluTorN)   { strcat(output, "T|N"); }
+	if (aluOp == aluTxorN)  { strcat(output, "T^N"); }
+	if (aluOp == aluNotT)   { strcat(output, "~T"); }
+	if (aluOp == aluTeqN)   { strcat(output, "N==T"); }
+	if (aluOp == aluTltN)   { strcat(output, "N<T"); }
+	if (aluOp == aluSHR)    { strcat(output, "N>>T"); }
+	if (aluOp == aluDecT)   { strcat(output, "T-1"); }
+	if (aluOp == aluFetch)  { strcat(output, "[T]"); }
+	if (aluOp == aluSHL)    { strcat(output, "N<<T"); }
+	if (aluOp == aluDepth)  { strcat(output, "dsp"); }
+	if (aluOp == aluNuLtT)  { strcat(output, "Nu<T"); }
 
 	if (IR & bitRtoPC)   { strcat(output, "   R->PC"); }
 	if (IR & bitStore)   { strcat(output, "   N->[T]"); }
-	if (IR & bitIncRSP)  { strcat(output, "   ++RSP"); }
-	if (IR & bitDecRSP)  { strcat(output, "   --RSP"); }
+	if (IR & bitIncRSP)  { strcat(output, "   r+1"); }
+	if (IR & bitDecRSP)  { strcat(output, "   r-1"); }
 	if (IR & bitTtoR)    { strcat(output, "   T->R"); }
 	if (IR & bitTtoN)    { strcat(output, "   T->N"); }
 	if (IR & bitUnused)  { strcat(output, "   (unused)"); }
-	if (IR & bitDecDSP)  { strcat(output, "   --DSP"); }
-	if (IR & bitIncDSP)  { strcat(output, "   ++DSP"); }
+	if (IR & bitDecDSP)  { strcat(output, "   d-1"); }
+	if (IR & bitIncDSP)  { strcat(output, "   d+1"); }
 }
 
 void disIR(WORD IR, char *output) {
 	char buf[128];
+	WORD arg;
 	sprintf(buf, "Unknown IR %04X", IR);
 	if ((IR & opLIT) == opLIT) {
-		WORD val = (IR & 0x7FFF);
-		sprintf(buf, "%-8s %-5d   # (0x%04X)", "LIT", val, val);
+		arg = (IR & 0x7FFF);
+		sprintf(buf, "%-8s %-5d   # (0x%04X)", "LIT", arg, arg);
 	} else if ((IR & INSTR_MASK) == opJMP) {
-		WORD addr = (IR & ADDR_MASK);
-		sprintf(buf, "%-8s %-5d   # (0x%04X)", "JMP", addr, addr);
+		arg = (IR & ADDR_MASK);
+		sprintf(buf, "%-8s %-5d   # (0x%04X)", "JMP", arg, arg);
 	} else if ((IR & INSTR_MASK) == opJMPZ) {
-		WORD addr = (IR & ADDR_MASK);
-		sprintf(buf, "%-8s %-5d   # (0x%04X)", "JMPZ", addr, addr);
+		arg = (IR & ADDR_MASK);
+		sprintf(buf, "%-8s %-5d   # (0x%04X)", "JMPZ", arg, arg);
 	} else if ((IR & INSTR_MASK) == opCALL) {
-		WORD addr = (IR & ADDR_MASK);
-		sprintf(buf, "%-8s %-5d   # (0x%04X)", "CALL", addr, addr);
+		arg = (IR & ADDR_MASK);
+		sprintf(buf, "%-8s %-5d   # (0x%04X)", "CALL", arg, arg);
 	} else if ((IR & INSTR_MASK) == opALU) {
-		WORD val = (IR & ADDR_MASK);
-		sprintf(buf, "%-8s %-5d   # (0x%04X)", "ALU", val, val);
+		arg = (IR & ADDR_MASK);
+		sprintf(buf, "%-8s %-5d   # (0x%04X)", "ALU", arg, arg);
 		disALU(IR, buf);
 	}
 	if (output) {
