@@ -1,9 +1,13 @@
 // J1 white paper is here: https://excamera.com/files/j1.pdf
 
-#define STK_SZ 16
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+
+#define STK_SZ 32
 #define MEM_SZ 8192
 
-#define CELL unsigned short
+#define CELL short
 #define CELL_SZ 2
 #define WORD unsigned short
 #define byte unsigned char  
@@ -90,10 +94,10 @@ typedef struct {
 
 // ---------------------------------------------------------------------
 extern WORD the_memory[];
-extern CELL dstk[];
-extern int DSP;
-extern CELL rstk[];
-extern int RSP;
+extern CELL dstk[], DSP;
+extern CELL rstk[], RSP;
+extern CELL PC;
+extern long cycle;
 
 void j1_init();
 void push(CELL val);
@@ -102,6 +106,7 @@ void executeALU(WORD IR);
 void j1_emu(WORD start, long maxCycles);
 void dumpStack(int sp, WORD *stk);
 void setDebugMode(bool isOn);
+void dumpState(bool, WORD);
 void disIR(WORD IR, char *output);
 WORD readPort(WORD portNum);
 void writePort(WORD portNum, WORD val);

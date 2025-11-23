@@ -1,4 +1,4 @@
-; HERE: 0x0099 (153)
+; HERE: 0x009A (154)
 ;  0: XT: 0000, Len:  1, Flags: 08, MacroVal: 6000, Name: noop
 ;  1: XT: 0000, Len:  1, Flags: 08, MacroVal: 6208, Name: +
 ;  2: XT: 0000, Len:  1, Flags: 08, MacroVal: 6508, Name: xor
@@ -53,7 +53,7 @@
 ; 51: XT: 0081, Len:  1, Flags: 00, MacroVal: 00, Name: bench
 ; 52: XT: 0082, Len:  1, Flags: 00, MacroVal: 00, Name: mbench
 ; 53: XT: 0083, Len:  2, Flags: 00, MacroVal: 00, Name: do-bench
-; 54: XT: 0085, Len: 20, Flags: 00, MacroVal: 00, Name: main
+; 54: XT: 0085, Len: 21, Flags: 00, MacroVal: 00, Name: main
 
 0000: 0085    JMP      133     # (0x0085)
 0001: 6028    ALU      40      # (0x0028)
@@ -245,4 +245,5 @@
 0095: 8065    LIT      101     # (0x0065)
 0096: 4016    CALL     22      # (0x0016)
 0097: 401A    CALL     26      # (0x001A)
-0098: 007D    JMP      125     # (0x007D)
+0098: 407D    CALL     125     # (0x007D)
+0099: 001A    JMP      26      # (0x001A)
