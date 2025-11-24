@@ -66,23 +66,23 @@ void j1_emu(WORD start, long maxCycles) {
 	cycle = 0;
 	PC = start;
 	
-	loop:
-	WORD IR = the_memory[PC++];
-	if ((IR & opLIT) == opLIT) {
-		push(IR & 0x7FFF);
-	} else if ((IR & INSTR_MASK) == opALU) {
-		executeALU(IR);
-	} else if ((IR & INSTR_MASK) == opCALL) {
-		rpush(PC);
-		PC = (IR & ADDR_MASK);
-	} else if ((IR & INSTR_MASK) == opJMPZ) {
-		if (pop() == 0) PC = (IR & ADDR_MASK);
-	} else if ((IR & INSTR_MASK) == opJMP) {
-		PC = IR & ADDR_MASK;
+	while (1) {
+		WORD IR = the_memory[PC++];
+		if ((IR & opLIT) == opLIT) {
+			push(IR & 0x7FFF);
+		} else if ((IR & INSTR_MASK) == opALU) {
+			executeALU(IR);
+		} else if ((IR & INSTR_MASK) == opCALL) {
+			rpush(PC);
+			PC = (IR & ADDR_MASK);
+		} else if ((IR & INSTR_MASK) == opJMPZ) {
+			if (pop() == 0) PC = (IR & ADDR_MASK);
+		} else if ((IR & INSTR_MASK) == opJMP) {
+			PC = IR & ADDR_MASK;
+		}
+		if (maxCycles && (++cycle >= maxCycles)) { return; }
+		if (RSP < 0) { RSP = 0; return; }
 	}
-	if (maxCycles && (++cycle >= maxCycles)) { return; }
-	if (RSP < 0) { RSP = 0; return; }
-	goto loop;
 }
 
 void main(int argc, char *argv[]) {
