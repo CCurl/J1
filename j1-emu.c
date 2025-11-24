@@ -11,6 +11,7 @@ long cycle;
 void j1_init() { PC = DSP = RSP = 0; }
 void push(CELL val) { if (DSP < STK_SZ) { dstk[++DSP] = val; } }
 CELL pop() { return (0 < DSP) ? dstk[DSP--] : 0; }
+void rpush(CELL val) { if (RSP < STK_SZ) { rstk[++RSP] = val; } }
 
 void storeWord(WORD addr, WORD val) {
 	if (BTWI(addr, 0, MEM_SZ-1)) { the_memory[addr] = val; }
@@ -49,15 +50,11 @@ WORD deriveNewT(WORD IR) {
 }
 
 void executeALU(WORD IR) {
-	CELL currentT = T;
-	CELL currentN = N;
-	CELL currentR = R;
-	CELL newT = deriveNewT(IR);
-	
-	if (IR & bitIncRSP) { RSP += (RSP < STK_SZ) ? 1 : 0; }
+	CELL currentT = T, currentN = N, currentR = R, deriveNewT(IR);
+	if (IR & bitIncRSP) { if (RSP < STK_SZ) { RSP++; } }
 	if (IR & bitDecRSP) { RSP -= 1; }
-	if (IR & bitIncDSP) { DSP += (DSP < STK_SZ) ? 1 : 0; }
-	if (IR & bitDecDSP) { DSP -= (DSP > 0)      ? 1 : 0; }
+	if (IR & bitIncDSP) { if (DSP < STK_SZ) { DSP++; } }
+	if (IR & bitDecDSP) { if (0 < DSP) { DSP--; } }
 	if (IR & bitRtoPC)  { PC = currentR; }
 	if (IR & bitTtoR)   { R  = currentT; }
 	if (IR & bitTtoN)   { N  = currentT; }
@@ -76,12 +73,10 @@ void j1_emu(WORD start, long maxCycles) {
 	} else if ((IR & INSTR_MASK) == opALU) {
 		executeALU(IR);
 	} else if ((IR & INSTR_MASK) == opCALL) {
-		RSP += (RSP < STK_SZ) ? 1 : 0;
-		R = PC;
+		rpush(PC);
 		PC = (IR & ADDR_MASK);
 	} else if ((IR & INSTR_MASK) == opJMPZ) {
-		PC = (T == 0) ? (IR & ADDR_MASK) : PC;
-		DSP--;
+		if (pop() == 0) PC = (IR & ADDR_MASK);
 	} else if ((IR & INSTR_MASK) == opJMP) {
 		PC = IR & ADDR_MASK;
 	}
@@ -91,13 +86,13 @@ void j1_emu(WORD start, long maxCycles) {
 }
 
 void main(int argc, char *argv[]) {
-	j1_init();
 	FILE *fp = fopen("j1.bin", "rb");
 	if (!fp) {
 		printf(" ERROR: unable to open file 'j1.bin'\n");
-		exit(1);
+	} else {
+		j1_init();
+		fread(the_memory, 2, MEM_SZ, fp);
+		fclose(fp);
+		j1_emu(0, 0);
 	}
-	fread(the_memory, 2, MEM_SZ, fp);
-	fclose(fp);
-	j1_emu(0, 0);
 }
