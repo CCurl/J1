@@ -6,6 +6,12 @@ bool debug_flag = false;
 int exitStatus = 0;
 long maxCycles = 0;
 
+WORD the_memory[MEM_SZ];
+CELL dstk[STK_SZ+1], DSP;
+CELL rstk[STK_SZ+1], RSP;
+CELL PC, debugOn = false;
+long cycle;
+
 #define LAST_OP the_memory[HERE-1]
 #define COMMA(val) the_memory[HERE++] = val
 
@@ -20,89 +26,37 @@ WORD HERE = 0;
 WORD STATE = 0;
 
 // ---------------------------------------------------------------------
-char getChar() {
-	return (*toIn) ? *(toIn++) : 0;
-}
-
-// ---------------------------------------------------------------------
-char skipWS() {
-	char ch = getChar();
-	while (ch) {
-		if (ch > 0x20) {
-			return ch;
-		} else {
-			ch = getChar();
-		}
-	}
-	return ch;
-}
+void j1_init() { PC = DSP = RSP = 0; }
+void push(CELL val) { if (DSP < STK_SZ) { dstk[++DSP] = val; } }
+CELL pop() { return (0 < DSP) ? dstk[DSP--] : 0; }
 
 // ---------------------------------------------------------------------
 int getWord(char *word) {
-	char ch = skipWS();
 	int len = 0;
-	while (ch > 0x20) {
-		*(word++) = ch;
-		++len;
-		ch = getChar();
-	}
-	*word = 0;
+	while (BTWI(*toIn,1,32)) { ++toIn; }
+	while (BTWI(*toIn,33,126)) { word[len++] = *(toIn++); }
+	word[len] = 0;
 	return len;
 }
 
 // ---------------------------------------------------------------------
-int isNumber(char *word, WORD *value) {
-	int base = 10;
-	bool isNeg = false;
-	short num = 0;
-	*value = 0;
-
-	if ((strlen(word) == 3) && (*word == '\'') && (*(word+2) == '\'')) {
-		*value = *(word+1);
-		return true;
+int isNumber(char *w, WORD *value) {
+	WORD n=0, b=10, isNeg=0;
+	if ((w[0]==39) && (w[2]==39) && (w[3]==0)) { *value=w[1]; return 1; }
+	if (w[0]=='#') { b=10; w++; }
+	if (w[0]=='$') { b=16; w++; }
+	if (w[0]=='%') { b=2; w++; }
+	if (w[0]=='-') { isNeg=1; w++; }
+	if (w[0]==0) { return 0; }
+	while (*w) {
+		int c = *(w++);
+		int x = BTWI(c,'0','9') ? c-'0' : 99;
+		if (BTWI(c,'A','F')) { x = (c-'A'+10); }
+		if (BTWI(c,'a','f')) { x = (c-'a'+10); }
+		if (BTWI(x, 0, b-1)) { n = (n*b)+x; } else { return 0; }
 	}
-	if (*word == '$') {
-		base = 16;
-		++word;
-	}
-	if (*word == '#') {
-		base = 10;
-		++word;
-	}
-	if (*word == '%') {
-		base = 2;
-		++word;
-	}
-	char ch = *(word++);
-	while (ch) {
-		short chNum = -1;
-		if ((base == 2) && ('0' <= ch) && (ch <= '1')) {
-			chNum = ch - '0';
-		}
-		if ((base == 10) && ('0' <= ch) && (ch <= '9')) {
-			chNum = ch - '0';
-		}
-		if (base == 16) {
-			if (('0' <= ch) && (ch <= '9')) {
-				chNum = ch - '0';
-			}
-			if (('A' <= ch) && (ch <= 'F')) {
-				chNum = ch - 'A' + 10;
-			}
-			if (('a' <= ch) && (ch <= 'f')) {
-				chNum = ch - 'a' + 10;
-			}
-		}
-		if (chNum < 0) { return false; }
-
-		num = (num*base) + chNum;
-		ch = *(word++);
-	}
-	if (isNeg) {
-		num = -num;
-	}
-	*value = (WORD)num;
-	return true;
+	*value = (isNeg ? -n : n);
+	return 1;
 }
 
 // ---------------------------------------------------------------------
@@ -112,7 +66,7 @@ void defineWord(char *name) {
 	p->xt = HERE;
 	p->flags = 0;
 	p->len = 0;
-	if (debug_flag) writePort_StringF("\nDefined (%d) [%s] at addr %02X", numWords-1, name, HERE);
+	if (debug_flag) printf("\nDefined (%d) [%s] at addr %02X", numWords-1, name, HERE);
 }
 
 // ---------------------------------------------------------------------
@@ -127,7 +81,7 @@ DICT_T *findWord(char *word) {
 
 // ---------------------------------------------------------------------
 void parseWord(char *word) {
-	// if (debug_flag) writePort_StringF("\n[%s] (HERE=%d), LAST_OP=%04X", word, HERE, LAST_OP);
+	// if (debug_flag) printf("\n[%s] (HERE=%d), LAST_OP=%04X", word, HERE, LAST_OP);
 	WORD num = 0;
 	WORD op = LAST_OP;
 	if (isNumber(word, &num)) {
@@ -176,9 +130,9 @@ void parseWord(char *word) {
 			w->xt = 0x0000;
 			w->flags = 0x08;
 			w->macroVal = op;
-			if (debug_flag) { writePort_StringF("MACRO: [%s], val=%02X", w->name, w->macroVal); }
+			if (debug_flag) { printf("MACRO: [%s], val=%02X", w->name, w->macroVal); }
 		} else {
-			writePort_StringF("\nWARN: [%s] length must be 1 for MACRO", w->name);
+			printf("\nWARN: [%s] length must be 1 for MACRO", w->name);
 		}
 		return;
 	}
@@ -194,7 +148,7 @@ void parseWord(char *word) {
 		// Change last operation to JMP if CALL
 		if ((LAST_OP & 0xE000) == opCALL) {
 			LAST_OP = (LAST_OP & 0x1FFF) | opJMP;
-			if (debug_flag) writePort_StringF("\nchanged op at %d to JMP", HERE-1);
+			if (debug_flag) printf("\nchanged op at %d to JMP", HERE-1);
 			return;
 		}
 		bool canAddRet = true;
@@ -205,7 +159,7 @@ void parseWord(char *word) {
 		if (canAddRet) {
 			LAST_OP |= bitRtoPC;
 			LAST_OP |= bitDecRSP;
-			if (debug_flag) writePort_StringF("\nAdded %04X to ALU op at %d", (bitDecDSP|bitRtoPC), HERE-1);
+			if (debug_flag) printf("\nAdded %04X to ALU op at %d", (bitDecDSP|bitRtoPC), HERE-1);
 			return;
 		}
 		// cannot include in previous op :(
@@ -217,108 +171,36 @@ void parseWord(char *word) {
 		return;
 	}
 	if (strcmp(word, "alu") == 0) {
-		if (debug_flag) writePort_StringF(" putting ALU %04X to [%d]", HERE);
+		if (debug_flag) printf(" putting ALU %04X to [%d]", HERE);
 		op = MAKE_ALU(pop());
 		COMMA(op);
 		return;
 	}
-	if (strcmp(word, "T") == 0) {
-		push(aluTgetsT);
-		return;
-	}
-	if (strcmp(word, "N") == 0) {
-		push(aluTgetsN);
-		return;
-	}
-	if (strcmp(word, "rT") == 0) {
-		push(aluTgetsR);
-		return;
-	}
-	if (strcmp(word, "T+N") == 0) {
-		push(aluTplusN);
-		return;
-	}
-	if (strcmp(word, "T&N") == 0) {
-		push(aluTandN);
-		return;
-	}
-	if (strcmp(word, "T|N") == 0) {
-		push(aluTorN);
-		return;
-	}
-	if (strcmp(word, "T^N") == 0) {
-		push(aluTxorN);
-		return;
-	}
-	if (strcmp(word, "~T") == 0) {
-		push(aluNotT);
-		return;
-	}
-	if (strcmp(word, "N==T") == 0) {
-		push(aluTeqN);
-		return;
-	}
-	if (strcmp(word, "N<T") == 0) {
-		push(aluTltN);
-		return;
-	}
-	if (strcmp(word, "N>>T") == 0) {
-		push(aluSHR);
-		return;
-	}
-	if (strcmp(word, "N<<T") == 0) {
-		push(aluSHL);
-		return;
-	}
-	if (strcmp(word, "T-1") == 0) {
-		push(aluDecT);
-		return;
-	}
-	if (strcmp(word, "[T]") == 0) {
-		push(aluFetch);
-		return;
-	}
-	if (strcmp(word, "dsp") == 0) {
-		push(aluDepth);
-		return;
-	}
-	if (strcmp(word, "Nu<T") == 0) {
-		push(aluNuLtT);
-		return;
-	}
-	if (strcmp(word, "N->[T]") == 0) {
-		T |= bitStore;
-		return;
-	}
-	if (strcmp(word, "R->PC") == 0) {
-		T |= bitRtoPC;
-		return;
-	}
-	if (strcmp(word, "T->N") == 0) {
-		T |= bitTtoN;
-		return;
-	}
-	if (strcmp(word, "T->R") == 0) {
-		T |= bitTtoR;
-		return;
-	}
-	if (strcmp(word, "r+1") == 0) {
-		T |= bitIncRSP;
-		return;
-	}
-	if (strcmp(word, "r-1") == 0) {
-		T |= bitDecRSP;
-		return;
-	}
-	if (strcmp(word, "d+1") == 0) {
-		T |= bitIncDSP;
-		return;
-	}
-	if (strcmp(word, "d-1") == 0) {
-		T |= bitDecDSP;
-		return;
-	}
-	if (strcmp(word, ">r") == 0) {
+	if (strcmp(word, "T")      == 0) { push(aluTgetsT); return; }
+	if (strcmp(word, "N")      == 0) { push(aluTgetsN); return; }
+	if (strcmp(word, "rT")     == 0) { push(aluTgetsR); return; }
+	if (strcmp(word, "T+N")    == 0) { push(aluTplusN); return; }
+	if (strcmp(word, "T&N")    == 0) { push(aluTandN);  return; }
+	if (strcmp(word, "T|N")    == 0) { push(aluTorN);   return; }	
+	if (strcmp(word, "T^N")    == 0) { push(aluTxorN);  return; }
+	if (strcmp(word, "~T")     == 0) { push(aluNotT);   return; }
+	if (strcmp(word, "N==T")   == 0) { push(aluTeqN);   return; }
+	if (strcmp(word, "N<T")    == 0) { push(aluTltN);   return; }
+	if (strcmp(word, "N>>T")   == 0) { push(aluSHR);    return; }
+	if (strcmp(word, "N<<T")   == 0) { push(aluSHL);    return; }
+	if (strcmp(word, "T-1")    == 0) { push(aluDecT);   return; }
+	if (strcmp(word, "[T]")    == 0) { push(aluFetch);  return; }
+	if (strcmp(word, "dsp")    == 0) { push(aluDepth);  return; }
+	if (strcmp(word, "Nu<T")   == 0) { push(aluNuLtT);  return; }
+	if (strcmp(word, "N->[T]") == 0) { T |= bitStore;   return; }
+	if (strcmp(word, "R->PC")  == 0) { T |= bitRtoPC;   return; }
+	if (strcmp(word, "T->N")   == 0) { T |= bitTtoN;    return; }
+	if (strcmp(word, "T->R")   == 0) { T |= bitTtoR;    return; }
+	if (strcmp(word, "r+1")    == 0) { T |= bitIncRSP;  return; }
+	if (strcmp(word, "r-1")    == 0) { T |= bitDecRSP;  return; }
+	if (strcmp(word, "d+1")    == 0) { T |= bitIncDSP;  return; }
+	if (strcmp(word, "d-1")    == 0) { T |= bitDecDSP;  return; }
+	if (strcmp(word, ">r")     == 0) {
 		op = MAKE_ALU(aluTgetsN|bitTtoR|bitIncRSP|bitDecDSP);
 		COMMA(op);
 		return;
@@ -337,7 +219,7 @@ void parseWord(char *word) {
 		// do something ...
 		return;
 	}
-	writePort_StringF("\nERROR: unknown word: [%s]\n", word);
+	printf("\nERROR: unknown word: [%s]\n", word);
 	exitStatus = 1;
 }
 
@@ -347,7 +229,7 @@ void parseLine(char *line) {
 	toIn = line;
 	while (true) {
 		int len = getWord(word);
-		// writePort_StringF("[%s]", word);
+		// printf("[%s]", word);
 		if (len) {
 			if (strcmp(word, "\\") == 0) { return; }
 			if (strcmp(word, "//") == 0) { return; }
@@ -380,7 +262,7 @@ int load(char *base) {
 		doCompile(fp);
 		fclose(fp);
 	} else {
-		writePort_StringF("ERROR: unable to open '%s'\n", fn);
+		printf("ERROR: unable to open '%s'\n", fn);
 		return 1;
 	}
 }
@@ -393,7 +275,7 @@ void doDisassemble(bool toFile) {
 		sprintf(fn, "%s.lst", base_fn);
 		fp = fopen(fn, "wt");
 		if (!fp) {
-			writePort_StringF("\nUnable to create listing file '%s'.", fn);
+			printf("\nUnable to create listing file '%s'.", fn);
 			return;
 		}
 		fprintf(fp, "; HERE: 0x%04X (%d)\n", HERE, HERE);
@@ -404,7 +286,7 @@ void doDisassemble(bool toFile) {
 		DICT_T *p = &words[i];
 		sprintf(buf, "; %2d: XT: %04X, Len: %2d, Flags: %02X, MacroVal: %02X, Name: %s\n", i,
 			p->xt, p->len, p->flags, p->macroVal, p->name);
-		(fp) ? fprintf(fp, "%s", buf) : writePort_String(buf);
+		(fp) ? fprintf(fp, "%s", buf) : printf("%s", buf);
 	}
 
 	for (int i = 0; i < HERE; i++) {
@@ -414,8 +296,8 @@ void doDisassemble(bool toFile) {
 			fprintf(fp, "\n%04X: %04X    ", i, ir);
 			fprintf(fp, "%s", buf);
 		} else {
-			writePort_StringF("\n%04X: %04X    ", i, ir);
-			writePort_String(buf);
+			printf("\n%04X: %04X    ", i, ir);
+			printf("%s", buf);
 		}
 	}
 	if (fp) { fclose(fp); }
@@ -427,70 +309,29 @@ void saveImage() {
 	sprintf(fn, "%s.bin", base_fn);
 	FILE *fp = fopen(fn, "wb");
 	if (fp) {
-		fwrite(the_memory, 1, MEM_SZ, fp);
+		fwrite(the_memory, 2, MEM_SZ, fp);
 		fclose(fp);
 	} else {
-		writePort_StringF(" ERROR: unable to open file '%s'", fn);
+		printf(" ERROR: unable to open file '%s'", fn);
 	}
 }
 
 // ---------------------------------------------------------------------
 // ---------------------------------------------------------------------
-// ---------------------------------------------------------------------
-void parse_arg(char *arg) 
-{
-	if (*arg == 'f') strcpy(base_fn, arg+2);
-	if (*arg == 't') save_output = false;
-	if (*arg == 'd') debug_flag  = true;
-	if (*arg == 'c') {
-		char buf[24];
-		strcpy(buf, arg+2);
-		maxCycles = atol(buf);
-	}
-
-	if (*arg == '?') {
-		writePort_StringF("usage: j1 [options]\n");
-		writePort_StringF("\t -f:baseFn     (default: 'j1')\n");
-		writePort_StringF("\t -t     (temp:  default: false)\n");
-		writePort_StringF("\t -d     (debug: default: false)\n");
-		writePort_StringF("\t -c:maxCycles  (default: 0)\n");
-		writePort_StringF("\nNotes ...");
-		writePort_StringF("\n\n    -f:baseFn defines the base filename for the files in the working set.");
-		writePort_StringF(  "\n    -t identfies that J1 should not write a .LST or .BIN file");
-		writePort_StringF(  "\n    -c limits the number of CPU cycles, 0 => unlimited");
-
-		exit(0);
-	}
-}
-
 // ---------------------------------------------------------------------
 int main (int argc, char **argv)
 {
 	strcpy(base_fn, "j1");
 
-	for (int i = 1; i < argc; i++) {
-		char *cp = argv[i];
-		if (*cp == '-') { parse_arg(++cp); }
-	}
-
-	setDebugMode(debug_flag);
 	j1_init();
 	COMMA(MAKE_JMP(0));
 
 	load(base_fn);
 
 	if (numWords) { the_memory[0] = MAKE_JMP(words[numWords-1].xt); }
-	if (save_output) { doDisassemble(true); }
-
-	j1_emu(0, maxCycles);
-
-	if (debug_flag) {
-		writePort_String("\ndata stack: ");
-		dumpStack(DSP, dstk);
-		writePort_String("\nreturn stack: ");
-		dumpStack(RSP, rstk);
-	} 
-
-	if (save_output) { saveImage(); }
+	if (save_output) {
+		doDisassemble(true);
+		saveImage();
+	}
 	return exitStatus;
 }

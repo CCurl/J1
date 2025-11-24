@@ -1,5 +1,12 @@
 // J1 white paper is here: https://excamera.com/files/j1.pdf
 
+// The top 3 bits identify the class of opcode ...
+// 1xxx => LIT  (1xxx xxxx xxxx xxxx) (IR & 0x8000) == 0x8000
+// 011x => ALU  (011x xxxx xxxx xxxx) (IR & 0xE000) == 0x6000
+// 010x => CALL (010x xxxx xxxx xxxx) (IR & 0xE000) == 0x4000
+// 001x => JMPZ (001x xxxx xxxx xxxx) (IR & 0xE000) == 0x2000
+// 000x => JMP  (000x xxxx xxxx xxxx) (IR & 0xE000) == 0x0000
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -15,6 +22,7 @@
 #define bool int
 #define true 1
 #define false 0
+#define BTWI(n,l,h) (((l)<=(n)) && ((n)<=(h)))
 
 #define INSTR_MASK 0xE000
 #define ADDR_MASK  0x1FFF
@@ -67,7 +75,7 @@
 #define tpFetch  (0x0C)
 #define tpSHL    (0x0D)
 #define tpDepth  (0x0E)
-#define tpNuLtT  (0x0F)
+#define tpNullT  (0x0F)
 
 #define setALUcode(op, code) (op |= ((code & 0x0f) << 8))
 

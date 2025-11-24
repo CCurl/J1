@@ -54,3 +54,5 @@ dkms.conf
 
 # my files
 j1
+j1-emu
+j1-parse
