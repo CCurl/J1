@@ -6,9 +6,7 @@ WORD the_memory[MEM_SZ];
 CELL dstk[STK_SZ+1], DSP;
 CELL rstk[STK_SZ+1], RSP;
 CELL PC, debugOn = false;
-long cycle;
 
-void j1_init() { PC = DSP = RSP = 0; }
 void push(CELL val) { if (DSP < STK_SZ) { dstk[++DSP] = val; } }
 CELL pop() { return (0 < DSP) ? dstk[DSP--] : 0; }
 void rpush(CELL val) { if (RSP < STK_SZ) { rstk[++RSP] = val; } }
@@ -27,8 +25,8 @@ WORD readWord(WORD addr) {
 	}
 }
 
-WORD deriveNewT(WORD IR) {
-	switch ((IR >> 8) & 0x0F) {
+WORD deriveNewT(WORD op) {
+	switch (op & 0x0F) {
 		case tpTgetsT: return T;
 		case tpTgetsN: return N;
 		case tpTplusN: return (T + N);
@@ -44,34 +42,27 @@ WORD deriveNewT(WORD IR) {
 		case tpFetch:  return readWord(T);
 		case tpSHL:    return (N << T);
 		case tpDepth:  return DSP;
-		case tpNullT:  return 0;
+		default: return 0; // tpNullT
 	}
-	return 0;
 }
 
-void executeALU(WORD IR) {
-	CELL currentT = T, currentN = N, currentR = R, deriveNewT(IR);
-	if (IR & bitIncRSP) { if (RSP < STK_SZ) { RSP++; } }
-	if (IR & bitDecRSP) { RSP -= 1; }
-	if (IR & bitIncDSP) { if (DSP < STK_SZ) { DSP++; } }
-	if (IR & bitDecDSP) { if (0 < DSP) { DSP--; } }
-	if (IR & bitRtoPC)  { PC = currentR; }
-	if (IR & bitTtoR)   { R  = currentT; }
-	if (IR & bitTtoN)   { N  = currentT; }
-	if (IR & bitStore)  { storeWord(currentT, currentN); }
-	T = newT;
-}
-
-void j1_emu(WORD start, long maxCycles) {
-	cycle = 0;
-	PC = start;
-	
+void j1_emu(WORD PC) {
 	while (1) {
 		WORD IR = the_memory[PC++];
 		if ((IR & opLIT) == opLIT) {
 			push(IR & 0x7FFF);
 		} else if ((IR & INSTR_MASK) == opALU) {
-			executeALU(IR);
+			CELL currentT = T, currentN = N;
+			CELL currentR = R, newT = deriveNewT(IR>>8);
+			if (IR & bitIncRSP) { if (RSP < STK_SZ) { RSP++; } }
+			if (IR & bitDecRSP) { RSP -= 1; }
+			if (IR & bitIncDSP) { if (DSP < STK_SZ) { DSP++; } }
+			if (IR & bitDecDSP) { if (0 < DSP) { DSP--; } }
+			if (IR & bitRtoPC)  { PC = currentR; }
+			if (IR & bitTtoR)   { R  = currentT; }
+			if (IR & bitTtoN)   { N  = currentT; }
+			if (IR & bitStore)  { storeWord(currentT, currentN); }
+			T = newT;
 		} else if ((IR & INSTR_MASK) == opCALL) {
 			rpush(PC);
 			PC = (IR & ADDR_MASK);
@@ -80,7 +71,6 @@ void j1_emu(WORD start, long maxCycles) {
 		} else if ((IR & INSTR_MASK) == opJMP) {
 			PC = IR & ADDR_MASK;
 		}
-		if (maxCycles && (++cycle >= maxCycles)) { return; }
 		if (RSP < 0) { RSP = 0; return; }
 	}
 }
@@ -90,9 +80,9 @@ void main(int argc, char *argv[]) {
 	if (!fp) {
 		printf(" ERROR: unable to open file 'j1.bin'\n");
 	} else {
-		j1_init();
+		PC = DSP = RSP = 0;
 		fread(the_memory, 2, MEM_SZ, fp);
 		fclose(fp);
-		j1_emu(0, 0);
+		j1_emu(0);
 	}
 }

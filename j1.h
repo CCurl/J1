@@ -12,7 +12,7 @@
 #include <string.h>
 
 #define STK_SZ 32
-#define MEM_SZ 8192
+#define MEM_SZ 0x4000
 
 #define CELL short
 #define CELL_SZ 2
@@ -60,22 +60,22 @@
 #define aluDepth  (0x0E00)
 #define aluNuLtT  (0x0F00)
 
-#define tpTgetsT (0x00)
-#define tpTgetsN (0x01)
-#define tpTplusN (0x02)
-#define tpTandN  (0x03)
-#define tpTorN   (0x04)
-#define tpTxorN  (0x05)
-#define tpNotT   (0x06)
-#define tpTeqN   (0x07)
-#define tpTltN   (0x08)
-#define tpSHR    (0x09)
-#define tpDecT   (0x0A)
-#define tpTgetsR (0x0B)
-#define tpFetch  (0x0C)
-#define tpSHL    (0x0D)
-#define tpDepth  (0x0E)
-#define tpNullT  (0x0F)
+#define tpTgetsT    (0x00)
+#define tpTgetsN    (0x01)
+#define tpTplusN    (0x02)
+#define tpTandN     (0x03)
+#define tpTorN      (0x04)
+#define tpTxorN     (0x05)
+#define tpNotT      (0x06)
+#define tpTeqN      (0x07)
+#define tpTltN      (0x08)
+#define tpSHR       (0x09)
+#define tpDecT      (0x0A)
+#define tpTgetsR    (0x0B)
+#define tpFetch     (0x0C)
+#define tpSHL       (0x0D)
+#define tpDepth     (0x0E)
+#define tpNullT     (0x0F)
 
 #define setALUcode(op, code) (op |= ((code & 0x0f) << 8))
 
@@ -104,20 +104,10 @@ typedef struct {
 extern WORD the_memory[];
 extern CELL dstk[], DSP;
 extern CELL rstk[], RSP;
-extern CELL PC;
-extern long cycle;
 
-void j1_init();
 void push(CELL val);
 CELL pop();
-void executeALU(WORD IR);
-void j1_emu(WORD start, long maxCycles);
 void dumpStack(int sp, WORD *stk);
-void setDebugMode(bool isOn);
 void dumpState(bool, WORD);
 void disIR(WORD IR, char *output);
-WORD readPort(WORD portNum);
-void writePort(WORD portNum, WORD val);
-void writePort_String(const char *str);
-void writePort_StringF(const char *fmt, ...);
 // ---------------------------------------------------------------------

@@ -2,9 +2,11 @@
 
 #include "j1.h"
 
+extern CELL PC;
+
 void dumpState(bool lastPC, WORD IR) {
 	printf("\nPC: %04X  DSP: %-2d N: %-5d T: %-5d", PC, DSP, N, T);
-	printf(" RSP: %-2d R: %-3d cycle: %-4ld", RSP, R, cycle);
+	printf(" RSP: %-2d R: %-3d cycle: %-4ld", RSP, R);
 	printf(" IR: %04X", the_memory[PC - ((lastPC) ? 1 : 0)]);
 	disIR(IR, NULL);
 }
